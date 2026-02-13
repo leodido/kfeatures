@@ -31,6 +31,7 @@ type probeConfig struct {
 	jit                bool
 	filesystems        bool
 	syscalls           bool
+	mitigations        bool
 	lsmPath            string // custom path for LSM file (for testing)
 }
 
@@ -80,6 +81,15 @@ func WithSyscalls() ProbeOption {
 	}
 }
 
+// WithMitigations probes CPU vulnerability mitigations that affect BPF JIT codegen
+// and reads CONFIG_BPF_JIT_ALWAYS_ON from kernel config.
+func WithMitigations() ProbeOption {
+	return func(c *probeConfig) {
+		c.mitigations = true
+		c.kernelConfig = true // needed for CONFIG_BPF_JIT_ALWAYS_ON
+	}
+}
+
 // WithFilesystems probes filesystem mounts relevant to BPF operations
 // (tracefs, debugfs, securityfs, bpffs).
 func WithFilesystems() ProbeOption {
@@ -111,6 +121,7 @@ func WithAll() ProbeOption {
 		c.jit = true
 		c.filesystems = true
 		c.syscalls = true
+		c.mitigations = true
 	}
 }
 
@@ -217,6 +228,15 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 		sf.Debugfs = probeFilesystemMount(debugfsPath)
 		sf.Securityfs = probeFilesystemMount(securityfsPath)
 		sf.BPFfs = probeFilesystemMount(bpffsPath)
+	}
+
+	// Probe CPU mitigations and JIT-always-on
+	if cfg.mitigations {
+		sf.SpectreV1 = readVulnerabilityStatus(spectreV1Path)
+		sf.SpectreV2 = readVulnerabilityStatus(spectreV2Path)
+		if kc != nil {
+			sf.JITAlwaysOn = kc.JITAlwaysOn
+		}
 	}
 
 	return sf, nil

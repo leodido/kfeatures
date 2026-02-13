@@ -156,6 +156,9 @@ func TestProbeWith_WithAll(t *testing.T) {
 	if !cfg.filesystems {
 		t.Error("WithAll should enable filesystems")
 	}
+	if !cfg.mitigations {
+		t.Error("WithAll should enable mitigations")
+	}
 }
 
 func TestProbeFilesystemMount(t *testing.T) {

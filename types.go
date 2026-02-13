@@ -92,6 +92,17 @@ type SystemFeatures struct {
 	// JITLimit: the memory limit in bytes for JIT-compiled BPF programs (0 if unavailable).
 	JITLimit int64
 
+	// JIT always-on mode (derived from kernel config).
+	// When CONFIG_BPF_JIT_ALWAYS_ON=y, the BPF interpreter is disabled and
+	// all programs must be JIT-compiled. Forced by some Spectre mitigation policies.
+	JITAlwaysOn ConfigValue
+
+	// CPU vulnerability mitigations.
+	// Each field contains the raw mitigation string from /sys/devices/system/cpu/vulnerabilities/
+	// or empty if the file doesn't exist. Values like "Mitigation: ..." mean active protection.
+	SpectreV1 string // spectre_v1
+	SpectreV2 string // spectre_v2
+
 	// Kernel preemption model (derived from kernel config).
 	// Affects sleepable BPF programs (BPF_F_SLEEPABLE).
 	PreemptMode PreemptMode
@@ -188,11 +199,12 @@ type KernelConfig struct {
 	raw map[string]ConfigValue
 
 	// Convenience fields for common checks (populated from raw).
-	BPFLSM      ConfigValue // CONFIG_BPF_LSM
-	IMA         ConfigValue // CONFIG_IMA
-	BTF         ConfigValue // CONFIG_DEBUG_INFO_BTF
-	KprobeMulti ConfigValue // CONFIG_FPROBE (required for kprobe.multi)
-	Preempt     PreemptMode // Derived from CONFIG_PREEMPT_*
+	BPFLSM       ConfigValue // CONFIG_BPF_LSM
+	IMA          ConfigValue // CONFIG_IMA
+	BTF          ConfigValue // CONFIG_DEBUG_INFO_BTF
+	KprobeMulti  ConfigValue // CONFIG_FPROBE (required for kprobe.multi)
+	JITAlwaysOn  ConfigValue // CONFIG_BPF_JIT_ALWAYS_ON
+	Preempt      PreemptMode // Derived from CONFIG_PREEMPT_*
 }
 
 // Get returns the ConfigValue for a kernel config key.
@@ -221,8 +233,9 @@ func NewKernelConfig(raw map[string]ConfigValue) *KernelConfig {
 		BPFLSM:      copied["BPF_LSM"],
 		IMA:         copied["IMA"],
 		BTF:         copied["DEBUG_INFO_BTF"],
-		KprobeMulti: copied["FPROBE"],
-		Preempt:     derivePreemptMode(copied),
+		KprobeMulti:  copied["FPROBE"],
+		JITAlwaysOn:  copied["BPF_JIT_ALWAYS_ON"],
+		Preempt:      derivePreemptMode(copied),
 	}
 }
 

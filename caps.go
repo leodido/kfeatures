@@ -162,6 +162,22 @@ func probePerfEventOpen() ProbeResult {
 	return ProbeResult{Supported: true}
 }
 
+// CPU vulnerability sysfs paths.
+const (
+	spectreV1Path = "/sys/devices/system/cpu/vulnerabilities/spectre_v1"
+	spectreV2Path = "/sys/devices/system/cpu/vulnerabilities/spectre_v2"
+)
+
+// readVulnerabilityStatus reads a CPU vulnerability status file.
+// Returns the trimmed content string, or empty if the file doesn't exist.
+func readVulnerabilityStatus(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
 // probeSysctlNonZero reads a sysctl file and returns Supported=true
 // if the value is a non-zero integer.
 func probeSysctlNonZero(path string) ProbeResult {

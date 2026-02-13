@@ -64,12 +64,24 @@ func (sf *SystemFeatures) String() string {
 	}
 	b.WriteString("\n")
 
+	if sf.SpectreV1 != "" || sf.SpectreV2 != "" {
+		b.WriteString("CPU Mitigations:\n")
+		if sf.SpectreV1 != "" {
+			fmt.Fprintf(&b, "  Spectre v1: %s\n", sf.SpectreV1)
+		}
+		if sf.SpectreV2 != "" {
+			fmt.Fprintf(&b, "  Spectre v2: %s\n", sf.SpectreV2)
+		}
+		b.WriteString("\n")
+	}
+
 	if sf.KernelConfig != nil {
 		b.WriteString("Kernel Config:\n")
 		writeConfig(&b, "  CONFIG_BPF_LSM", sf.KernelConfig.BPFLSM)
 		writeConfig(&b, "  CONFIG_IMA", sf.KernelConfig.IMA)
 		writeConfig(&b, "  CONFIG_DEBUG_INFO_BTF", sf.KernelConfig.BTF)
 		writeConfig(&b, "  CONFIG_FPROBE", sf.KernelConfig.KprobeMulti)
+		writeConfig(&b, "  CONFIG_BPF_JIT_ALWAYS_ON", sf.KernelConfig.JITAlwaysOn)
 		fmt.Fprintf(&b, "  Preemption model: %s\n", sf.KernelConfig.Preempt)
 		fmt.Fprintf(&b, "  Sleepable BPF: %s\n", map[bool]string{true: "yes", false: "no"}[sf.KernelConfig.Preempt.SupportsSleepable()])
 	}
