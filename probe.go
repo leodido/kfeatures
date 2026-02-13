@@ -197,6 +197,7 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 		sf.HasCapSysAdmin = probeCapability(capSysAdmin)
 		sf.HasCapPerfmon = probeCapability(capPerfmon)
 		sf.UnprivilegedBPFDisabled = probeUnprivilegedBPF()
+		sf.BPFStatsEnabled = probeBPFStats()
 	}
 
 	// Probe JIT compiler status

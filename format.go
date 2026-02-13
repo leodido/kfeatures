@@ -43,6 +43,7 @@ func (sf *SystemFeatures) String() string {
 	writeResult(&b, "  CAP_SYS_ADMIN", sf.HasCapSysAdmin)
 	writeResult(&b, "  CAP_PERFMON", sf.HasCapPerfmon)
 	writeResult(&b, "  Unprivileged BPF disabled", sf.UnprivilegedBPFDisabled)
+	writeResult(&b, "  BPF stats enabled", sf.BPFStatsEnabled)
 	b.WriteString("\n")
 
 	b.WriteString("Filesystems:\n")

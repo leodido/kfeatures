@@ -49,6 +49,15 @@ func probeUnprivilegedBPF() ProbeResult {
 	return ProbeResult{Supported: val == "1" || val == "2"}
 }
 
+const bpfStatsPath = "/proc/sys/kernel/bpf_stats_enabled"
+
+// probeBPFStats reads /proc/sys/kernel/bpf_stats_enabled.
+// Supported=true means BPF runtime statistics collection is enabled.
+// When enabled, the kernel collects per-program run count and run time.
+func probeBPFStats() ProbeResult {
+	return probeSysctlNonZero(bpfStatsPath)
+}
+
 // JIT compiler sysctl paths.
 const (
 	jitEnablePath   = "/proc/sys/net/core/bpf_jit_enable"

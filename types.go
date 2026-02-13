@@ -92,6 +92,12 @@ type SystemFeatures struct {
 	// JITLimit: the memory limit in bytes for JIT-compiled BPF programs (0 if unavailable).
 	JITLimit int64
 
+	// BPF runtime statistics
+	// BPFStatsEnabled: Supported=true means /proc/sys/kernel/bpf_stats_enabled is non-zero.
+	// When enabled, the kernel collects per-program runtime stats (run count, run time).
+	// Useful for verifier profiling and performance debugging.
+	BPFStatsEnabled ProbeResult
+
 	// Kernel config (optional, may be nil if not probed)
 	KernelConfig *KernelConfig
 
