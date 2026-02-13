@@ -28,6 +28,7 @@ type probeConfig struct {
 	securitySubsystems bool
 	kernelConfig       bool
 	capabilities       bool
+	jit                bool
 	lsmPath            string // custom path for LSM file (for testing)
 }
 
@@ -63,6 +64,13 @@ func WithCapabilities() ProbeOption {
 	}
 }
 
+// WithJIT probes BPF JIT compiler status (enabled, hardening, kallsyms, memory limit).
+func WithJIT() ProbeOption {
+	return func(c *probeConfig) {
+		c.jit = true
+	}
+}
+
 // WithLSMPath sets a custom path for the LSM file.
 // This is primarily for testing; production code uses the default /sys/kernel/security/lsm.
 func WithLSMPath(path string) ProbeOption {
@@ -83,6 +91,7 @@ func WithAll() ProbeOption {
 		c.securitySubsystems = true
 		c.kernelConfig = true
 		c.capabilities = true
+		c.jit = true
 	}
 }
 
@@ -163,6 +172,14 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 		sf.HasCapSysAdmin = probeCapability(capSysAdmin)
 		sf.HasCapPerfmon = probeCapability(capPerfmon)
 		sf.UnprivilegedBPFDisabled = probeUnprivilegedBPF()
+	}
+
+	// Probe JIT compiler status
+	if cfg.jit {
+		sf.JITEnabled = probeJITEnabled()
+		sf.JITHardened = probeJITHardened()
+		sf.JITKallsyms = probeJITKallsyms()
+		sf.JITLimit = probeJITLimit()
 	}
 
 	return sf, nil

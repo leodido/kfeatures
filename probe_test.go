@@ -150,6 +150,9 @@ func TestProbeWith_WithAll(t *testing.T) {
 	if !cfg.capabilities {
 		t.Error("WithAll should enable capabilities")
 	}
+	if !cfg.jit {
+		t.Error("WithAll should enable JIT")
+	}
 }
 
 func TestCacheReset(t *testing.T) {
@@ -175,6 +178,10 @@ func TestSystemFeatures_String(t *testing.T) {
 		HasCapBPF:      ProbeResult{Supported: true},
 		HasCapSysAdmin: ProbeResult{Supported: true},
 		HasCapPerfmon:  ProbeResult{Supported: false},
+		JITEnabled:     ProbeResult{Supported: true},
+		JITHardened:    ProbeResult{Supported: false},
+		JITKallsyms:    ProbeResult{Supported: true},
+		JITLimit:        268435456,
 		ActiveLSMs:     []string{"lockdown", "bpf"},
 		KernelConfig: NewKernelConfig(map[string]ConfigValue{
 			"BPF_LSM":        ConfigBuiltin,
@@ -199,5 +206,17 @@ func TestSystemFeatures_String(t *testing.T) {
 	}
 	if !strings.Contains(output, "CONFIG_BPF_LSM: y") {
 		t.Error("String() should contain kernel config")
+	}
+	if !strings.Contains(output, "JIT:") {
+		t.Error("String() should contain JIT section")
+	}
+	if !strings.Contains(output, "Enabled: yes") {
+		t.Error("String() should show JIT enabled")
+	}
+	if !strings.Contains(output, "Hardened: no") {
+		t.Error("String() should show JIT hardened status")
+	}
+	if !strings.Contains(output, "268435456 bytes") {
+		t.Error("String() should show JIT memory limit")
 	}
 }

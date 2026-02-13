@@ -147,6 +147,8 @@ func TestFeature_String(t *testing.T) {
 		{FeatureCapBPF, "CAP_BPF"},
 		{FeatureCapSysAdmin, "CAP_SYS_ADMIN"},
 		{FeatureCapPerfmon, "CAP_PERFMON"},
+		{FeatureJITEnabled, "BPF JIT"},
+		{FeatureJITHardened, "BPF JIT hardening"},
 		{Feature(999), "Feature(999)"},
 	}
 	for _, tt := range tests {

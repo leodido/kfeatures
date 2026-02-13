@@ -19,6 +19,8 @@ func TestSystemFeatures_Result(t *testing.T) {
 		HasCapBPF:      ProbeResult{Supported: true},
 		HasCapSysAdmin: ProbeResult{Supported: true},
 		HasCapPerfmon:  ProbeResult{Supported: false},
+		JITEnabled:     ProbeResult{Supported: true},
+		JITHardened:    ProbeResult{Supported: false},
 	}
 
 	tests := []struct {
@@ -36,6 +38,8 @@ func TestSystemFeatures_Result(t *testing.T) {
 		{FeatureCapBPF, true, true},
 		{FeatureCapSysAdmin, true, true},
 		{FeatureCapPerfmon, true, false},
+		{FeatureJITEnabled, true, true},
+		{FeatureJITHardened, true, false},
 		{Feature(999), false, false},
 	}
 
@@ -118,6 +122,16 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 		}
 	})
 
+	t.Run("JIT diagnostics", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		if got := sf.Diagnose(FeatureJITEnabled); got != "BPF JIT disabled; set /proc/sys/net/core/bpf_jit_enable to 1" {
+			t.Errorf("Diagnose(FeatureJITEnabled) = %q", got)
+		}
+		if got := sf.Diagnose(FeatureJITHardened); got != "BPF JIT hardening disabled; set /proc/sys/net/core/bpf_jit_harden to 1 or 2" {
+			t.Errorf("Diagnose(FeatureJITHardened) = %q", got)
+		}
+	})
+
 	t.Run("no kernel config fallback", func(t *testing.T) {
 		sf := &SystemFeatures{}
 		got := sf.Diagnose(FeatureBPFLSM)
@@ -162,6 +176,17 @@ func TestProbeOptionsFor(t *testing.T) {
 		}
 		if !cfg.capabilities {
 			t.Error("expected capabilities=true for CAP_BPF")
+		}
+	})
+
+	t.Run("JIT features", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureJITEnabled, FeatureJITHardened})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.jit {
+			t.Error("expected jit=true for JIT features")
 		}
 	})
 

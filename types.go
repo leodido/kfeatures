@@ -63,6 +63,18 @@ type SystemFeatures struct {
 	// Supported=true means unprivileged BPF is disabled (the common/secure default).
 	UnprivilegedBPFDisabled ProbeResult
 
+	// JIT compiler status (sysctl values)
+	// JITEnabled: Supported=true means BPF JIT compiler is enabled.
+	// Values: 0=disabled, 1=enabled, 2=enabled+debug (emit to kernel log).
+	JITEnabled ProbeResult
+	// JITHardened: Supported=true means BPF JIT hardening is active.
+	// Values: 0=disabled, 1=enabled for unprivileged, 2=enabled for all.
+	JITHardened ProbeResult
+	// JITKallsyms: Supported=true means JIT-compiled BPF programs are exposed in /proc/kallsyms.
+	JITKallsyms ProbeResult
+	// JITLimit: the memory limit in bytes for JIT-compiled BPF programs (0 if unavailable).
+	JITLimit int64
+
 	// Kernel config (optional, may be nil if not probed)
 	KernelConfig *KernelConfig
 
@@ -171,6 +183,10 @@ const (
 	FeatureCapSysAdmin
 	// FeatureCapPerfmon requires the CAP_PERFMON capability.
 	FeatureCapPerfmon
+	// FeatureJITEnabled requires the BPF JIT compiler to be enabled.
+	FeatureJITEnabled
+	// FeatureJITHardened requires BPF JIT hardening to be active.
+	FeatureJITHardened
 )
 
 var featureNames = map[Feature]string{
@@ -184,6 +200,8 @@ var featureNames = map[Feature]string{
 	FeatureCapBPF:      "CAP_BPF",
 	FeatureCapSysAdmin: "CAP_SYS_ADMIN",
 	FeatureCapPerfmon:  "CAP_PERFMON",
+	FeatureJITEnabled:  "BPF JIT",
+	FeatureJITHardened: "BPF JIT hardening",
 }
 
 func (f Feature) String() string {

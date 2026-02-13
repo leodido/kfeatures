@@ -58,6 +58,10 @@ func (sf *SystemFeatures) Result(f Feature) (ProbeResult, bool) {
 		return sf.HasCapSysAdmin, true
 	case FeatureCapPerfmon:
 		return sf.HasCapPerfmon, true
+	case FeatureJITEnabled:
+		return sf.JITEnabled, true
+	case FeatureJITHardened:
+		return sf.JITHardened, true
 	default:
 		return ProbeResult{}, false
 	}
@@ -94,6 +98,10 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 		return "missing CAP_SYS_ADMIN; run as root or add CAP_SYS_ADMIN"
 	case FeatureCapPerfmon:
 		return "missing CAP_PERFMON; run with CAP_PERFMON or as root"
+	case FeatureJITEnabled:
+		return "BPF JIT disabled; set /proc/sys/net/core/bpf_jit_enable to 1"
+	case FeatureJITHardened:
+		return "BPF JIT hardening disabled; set /proc/sys/net/core/bpf_jit_harden to 1 or 2"
 	}
 
 	// Fallback: use the probe error if available.
@@ -110,6 +118,7 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 	var needSecurity bool
 	var needKernelConfig bool
 	var needCapabilities bool
+	var needJIT bool
 	var programTypes []ebpf.ProgramType
 
 	for _, f := range reqs {
@@ -127,6 +136,8 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 			programTypes = append(programTypes, ebpf.TracePoint)
 		case FeatureCapBPF, FeatureCapSysAdmin, FeatureCapPerfmon:
 			needCapabilities = true
+		case FeatureJITEnabled, FeatureJITHardened:
+			needJIT = true
 		}
 	}
 
@@ -142,6 +153,9 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 	}
 	if needCapabilities {
 		opts = append(opts, WithCapabilities())
+	}
+	if needJIT {
+		opts = append(opts, WithJIT())
 	}
 	return opts
 }

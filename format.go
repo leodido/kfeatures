@@ -40,6 +40,17 @@ func (sf *SystemFeatures) String() string {
 	writeResult(&b, "  Unprivileged BPF disabled", sf.UnprivilegedBPFDisabled)
 	b.WriteString("\n")
 
+	b.WriteString("JIT:\n")
+	writeResult(&b, "  Enabled", sf.JITEnabled)
+	writeResult(&b, "  Hardened", sf.JITHardened)
+	writeResult(&b, "  Kallsyms", sf.JITKallsyms)
+	if sf.JITLimit > 0 {
+		fmt.Fprintf(&b, "  Memory limit: %d bytes\n", sf.JITLimit)
+	} else {
+		b.WriteString("  Memory limit: unknown\n")
+	}
+	b.WriteString("\n")
+
 	if sf.KernelConfig != nil {
 		b.WriteString("Kernel Config:\n")
 		writeConfig(&b, "  CONFIG_BPF_LSM", sf.KernelConfig.BPFLSM)
