@@ -1,0 +1,19 @@
+# Binaries
+/kfeatures
+/cmd/kfeatures/kfeatures
+
+# Test artifacts
+*.test
+*.out
+coverage.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
