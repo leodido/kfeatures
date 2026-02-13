@@ -162,6 +162,35 @@ func probePerfEventOpen() ProbeResult {
 	return ProbeResult{Supported: true}
 }
 
+// Namespace detection.
+// probeInitUserNS checks if the process is running in the initial user namespace
+// by comparing the user namespace inode of /proc/self/ns/user with /proc/1/ns/user.
+func probeInitUserNS() ProbeResult {
+	return probeInitNS("/proc/self/ns/user", "/proc/1/ns/user")
+}
+
+// probeInitPIDNS checks if the process is running in the initial PID namespace
+// by comparing /proc/self/ns/pid with /proc/1/ns/pid.
+func probeInitPIDNS() ProbeResult {
+	return probeInitNS("/proc/self/ns/pid", "/proc/1/ns/pid")
+}
+
+// probeInitNS compares two namespace symlinks by inode number.
+// Supported=true means both resolve to the same namespace (i.e., the initial one).
+func probeInitNS(selfPath, initPath string) ProbeResult {
+	selfInfo, err := os.Stat(selfPath)
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+	initInfo, err := os.Stat(initPath)
+	if err != nil {
+		// Cannot read /proc/1/ns/*: likely in a container with restricted /proc.
+		// Assume non-initial namespace.
+		return ProbeResult{Supported: false}
+	}
+	return ProbeResult{Supported: os.SameFile(selfInfo, initInfo)}
+}
+
 // CPU vulnerability sysfs paths.
 const (
 	spectreV1Path = "/sys/devices/system/cpu/vulnerabilities/spectre_v1"

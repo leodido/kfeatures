@@ -64,6 +64,11 @@ func (sf *SystemFeatures) String() string {
 	}
 	b.WriteString("\n")
 
+	b.WriteString("Namespaces:\n")
+	writeResult(&b, "  Initial user namespace", sf.InInitUserNS)
+	writeResult(&b, "  Initial PID namespace", sf.InInitPIDNS)
+	b.WriteString("\n")
+
 	if sf.SpectreV1 != "" || sf.SpectreV2 != "" {
 		b.WriteString("CPU Mitigations:\n")
 		if sf.SpectreV1 != "" {

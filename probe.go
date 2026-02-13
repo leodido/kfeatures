@@ -32,6 +32,7 @@ type probeConfig struct {
 	filesystems        bool
 	syscalls           bool
 	mitigations        bool
+	namespaces         bool
 	lsmPath            string // custom path for LSM file (for testing)
 }
 
@@ -81,6 +82,13 @@ func WithSyscalls() ProbeOption {
 	}
 }
 
+// WithNamespaces probes namespace context (user namespace, PID namespace).
+func WithNamespaces() ProbeOption {
+	return func(c *probeConfig) {
+		c.namespaces = true
+	}
+}
+
 // WithMitigations probes CPU vulnerability mitigations that affect BPF JIT codegen
 // and reads CONFIG_BPF_JIT_ALWAYS_ON from kernel config.
 func WithMitigations() ProbeOption {
@@ -122,6 +130,7 @@ func WithAll() ProbeOption {
 		c.filesystems = true
 		c.syscalls = true
 		c.mitigations = true
+		c.namespaces = true
 	}
 }
 
@@ -237,6 +246,12 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 		if kc != nil {
 			sf.JITAlwaysOn = kc.JITAlwaysOn
 		}
+	}
+
+	// Probe namespace context
+	if cfg.namespaces {
+		sf.InInitUserNS = probeInitUserNS()
+		sf.InInitPIDNS = probeInitPIDNS()
 	}
 
 	return sf, nil

@@ -107,6 +107,15 @@ type SystemFeatures struct {
 	// Affects sleepable BPF programs (BPF_F_SLEEPABLE).
 	PreemptMode PreemptMode
 
+	// Namespace awareness.
+	// InInitUserNS: Supported=true means the process runs in the initial user namespace.
+	// BPF is often restricted in non-initial user namespaces.
+	InInitUserNS ProbeResult
+	// InInitPIDNS: Supported=true means the process runs in the initial PID namespace.
+	// bpf_get_current_pid_tgid() returns the PID in the current PID namespace, which
+	// differs from the host PID when running in a nested PID namespace.
+	InInitPIDNS ProbeResult
+
 	// BPF runtime statistics
 	// BPFStatsEnabled: Supported=true means /proc/sys/kernel/bpf_stats_enabled is non-zero.
 	// When enabled, the kernel collects per-program runtime stats (run count, run time).

@@ -159,6 +159,12 @@ func TestProbeWith_WithAll(t *testing.T) {
 	if !cfg.mitigations {
 		t.Error("WithAll should enable mitigations")
 	}
+	if !cfg.namespaces {
+		t.Error("WithAll should enable namespaces")
+	}
+	if !cfg.syscalls {
+		t.Error("WithAll should enable syscalls")
+	}
 }
 
 func TestProbeFilesystemMount(t *testing.T) {
@@ -227,6 +233,8 @@ func TestSystemFeatures_String(t *testing.T) {
 		Debugfs:        ProbeResult{Supported: true},
 		Securityfs:     ProbeResult{Supported: true},
 		BPFfs:          ProbeResult{Supported: false},
+		InInitUserNS:   ProbeResult{Supported: true},
+		InInitPIDNS:    ProbeResult{Supported: false},
 		JITEnabled:     ProbeResult{Supported: true},
 		JITHardened:    ProbeResult{Supported: false},
 		JITKallsyms:    ProbeResult{Supported: true},
@@ -285,5 +293,14 @@ func TestSystemFeatures_String(t *testing.T) {
 	}
 	if !strings.Contains(output, "268435456 bytes") {
 		t.Error("String() should show JIT memory limit")
+	}
+	if !strings.Contains(output, "Namespaces:") {
+		t.Error("String() should contain Namespaces section")
+	}
+	if !strings.Contains(output, "Initial user namespace: yes") {
+		t.Error("String() should show initial user namespace status")
+	}
+	if !strings.Contains(output, "Initial PID namespace: no") {
+		t.Error("String() should show initial PID namespace status")
 	}
 }
