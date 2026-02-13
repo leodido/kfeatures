@@ -1,0 +1,174 @@
+//go:build linux
+
+package kfeatures
+
+import (
+	"testing"
+)
+
+func TestSystemFeatures_Result(t *testing.T) {
+	sf := &SystemFeatures{
+		LSMProgramType: ProbeResult{Supported: true},
+		BPFLSMEnabled:  ProbeResult{Supported: true},
+		BTF:            ProbeResult{Supported: true},
+		IMAEnabled:     ProbeResult{Supported: false},
+		Kprobe:         ProbeResult{Supported: true},
+		KprobeMulti:    ProbeResult{Supported: true},
+		Fentry:         ProbeResult{Supported: true},
+		Tracepoint:     ProbeResult{Supported: true},
+		HasCapBPF:      ProbeResult{Supported: true},
+		HasCapSysAdmin: ProbeResult{Supported: true},
+		HasCapPerfmon:  ProbeResult{Supported: false},
+	}
+
+	tests := []struct {
+		feature   Feature
+		wantOK    bool
+		wantValue bool
+	}{
+		{FeatureBPFLSM, true, true},
+		{FeatureBTF, true, true},
+		{FeatureIMA, true, false},
+		{FeatureKprobe, true, true},
+		{FeatureKprobeMulti, true, true},
+		{FeatureFentry, true, true},
+		{FeatureTracepoint, true, true},
+		{FeatureCapBPF, true, true},
+		{FeatureCapSysAdmin, true, true},
+		{FeatureCapPerfmon, true, false},
+		{Feature(999), false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.feature.String(), func(t *testing.T) {
+			result, ok := sf.Result(tt.feature)
+			if ok != tt.wantOK {
+				t.Errorf("Result() ok = %v, want %v", ok, tt.wantOK)
+			}
+			if result.Supported != tt.wantValue {
+				t.Errorf("Result() Supported = %v, want %v", result.Supported, tt.wantValue)
+			}
+		})
+	}
+}
+
+func TestSystemFeatures_Diagnose(t *testing.T) {
+	t.Run("BPF LSM not in config", func(t *testing.T) {
+		sf := &SystemFeatures{
+			KernelConfig: NewKernelConfig(map[string]ConfigValue{}),
+		}
+		got := sf.Diagnose(FeatureBPFLSM)
+		if got != "CONFIG_BPF_LSM not set; rebuild kernel with CONFIG_BPF_LSM=y" {
+			t.Errorf("Diagnose(FeatureBPFLSM) = %q", got)
+		}
+	})
+
+	t.Run("BPF LSM compiled but not in boot params", func(t *testing.T) {
+		sf := &SystemFeatures{
+			LSMProgramType: ProbeResult{Supported: true},
+			BPFLSMEnabled:  ProbeResult{Supported: false},
+			KernelConfig:   NewKernelConfig(map[string]ConfigValue{"BPF_LSM": ConfigBuiltin}),
+		}
+		got := sf.Diagnose(FeatureBPFLSM)
+		if got != "CONFIG_BPF_LSM=y but 'bpf' not in active LSM list; add lsm=...,bpf to kernel boot params" {
+			t.Errorf("Diagnose(FeatureBPFLSM) = %q", got)
+		}
+	})
+
+	t.Run("BTF not in config", func(t *testing.T) {
+		sf := &SystemFeatures{
+			KernelConfig: NewKernelConfig(map[string]ConfigValue{}),
+		}
+		got := sf.Diagnose(FeatureBTF)
+		if got != "CONFIG_DEBUG_INFO_BTF not set; rebuild kernel with CONFIG_DEBUG_INFO_BTF=y" {
+			t.Errorf("Diagnose(FeatureBTF) = %q", got)
+		}
+	})
+
+	t.Run("kprobe.multi not in config", func(t *testing.T) {
+		sf := &SystemFeatures{
+			KernelConfig: NewKernelConfig(map[string]ConfigValue{}),
+		}
+		got := sf.Diagnose(FeatureKprobeMulti)
+		if got != "CONFIG_FPROBE not set; requires kernel 5.18+ with CONFIG_FPROBE=y" {
+			t.Errorf("Diagnose(FeatureKprobeMulti) = %q", got)
+		}
+	})
+
+	t.Run("IMA not in config", func(t *testing.T) {
+		sf := &SystemFeatures{
+			KernelConfig: NewKernelConfig(map[string]ConfigValue{}),
+		}
+		got := sf.Diagnose(FeatureIMA)
+		if got != "CONFIG_IMA not set; rebuild kernel with CONFIG_IMA=y" {
+			t.Errorf("Diagnose(FeatureIMA) = %q", got)
+		}
+	})
+
+	t.Run("capability diagnostics", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		if got := sf.Diagnose(FeatureCapBPF); got != "missing CAP_BPF; run with CAP_BPF or as root" {
+			t.Errorf("Diagnose(FeatureCapBPF) = %q", got)
+		}
+		if got := sf.Diagnose(FeatureCapSysAdmin); got != "missing CAP_SYS_ADMIN; run as root or add CAP_SYS_ADMIN" {
+			t.Errorf("Diagnose(FeatureCapSysAdmin) = %q", got)
+		}
+		if got := sf.Diagnose(FeatureCapPerfmon); got != "missing CAP_PERFMON; run with CAP_PERFMON or as root" {
+			t.Errorf("Diagnose(FeatureCapPerfmon) = %q", got)
+		}
+	})
+
+	t.Run("no kernel config fallback", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		got := sf.Diagnose(FeatureBPFLSM)
+		if got != "not supported" {
+			t.Errorf("Diagnose(FeatureBPFLSM) without config = %q, want 'not supported'", got)
+		}
+	})
+}
+
+func TestProbeOptionsFor(t *testing.T) {
+	t.Run("security features", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureBPFLSM, FeatureIMA})
+		// Should include security subsystems.
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.securitySubsystems {
+			t.Error("expected securitySubsystems=true for BPF LSM + IMA")
+		}
+	})
+
+	t.Run("kprobe.multi needs kernel config", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureKprobeMulti})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.kernelConfig {
+			t.Error("expected kernelConfig=true for kprobe.multi")
+		}
+		if len(cfg.programTypes) == 0 {
+			t.Error("expected programTypes to include Kprobe")
+		}
+	})
+
+	t.Run("capabilities", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureCapBPF})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.capabilities {
+			t.Error("expected capabilities=true for CAP_BPF")
+		}
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		opts := probeOptionsFor(nil)
+		if len(opts) != 0 {
+			t.Errorf("expected 0 options for nil, got %d", len(opts))
+		}
+	})
+}
