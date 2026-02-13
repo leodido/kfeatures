@@ -40,6 +40,13 @@ func (sf *SystemFeatures) String() string {
 	writeResult(&b, "  Unprivileged BPF disabled", sf.UnprivilegedBPFDisabled)
 	b.WriteString("\n")
 
+	b.WriteString("Filesystems:\n")
+	writeResult(&b, "  tracefs", sf.Tracefs)
+	writeResult(&b, "  debugfs", sf.Debugfs)
+	writeResult(&b, "  securityfs", sf.Securityfs)
+	writeResult(&b, "  bpffs", sf.BPFfs)
+	b.WriteString("\n")
+
 	b.WriteString("JIT:\n")
 	writeResult(&b, "  Enabled", sf.JITEnabled)
 	writeResult(&b, "  Hardened", sf.JITHardened)

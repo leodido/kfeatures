@@ -153,6 +153,46 @@ func TestProbeWith_WithAll(t *testing.T) {
 	if !cfg.jit {
 		t.Error("WithAll should enable JIT")
 	}
+	if !cfg.filesystems {
+		t.Error("WithAll should enable filesystems")
+	}
+}
+
+func TestProbeFilesystemMount(t *testing.T) {
+	t.Run("existing directory", func(t *testing.T) {
+		dir := t.TempDir()
+		result := probeFilesystemMount(dir)
+		if !result.Supported {
+			t.Error("probeFilesystemMount should return Supported=true for existing directory")
+		}
+	})
+
+	t.Run("nonexistent path", func(t *testing.T) {
+		result := probeFilesystemMount("/nonexistent/path/that/should/not/exist")
+		if result.Supported {
+			t.Error("probeFilesystemMount should return Supported=false for nonexistent path")
+		}
+	})
+
+	t.Run("fallback to second path", func(t *testing.T) {
+		dir := t.TempDir()
+		result := probeFilesystemMount("/nonexistent/path", dir)
+		if !result.Supported {
+			t.Error("probeFilesystemMount should return Supported=true when fallback path exists")
+		}
+	})
+
+	t.Run("file not directory", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "not-a-dir")
+		if err := os.WriteFile(path, []byte("data"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		result := probeFilesystemMount(path)
+		if result.Supported {
+			t.Error("probeFilesystemMount should return Supported=false for regular file")
+		}
+	})
 }
 
 func TestCacheReset(t *testing.T) {
@@ -178,6 +218,10 @@ func TestSystemFeatures_String(t *testing.T) {
 		HasCapBPF:      ProbeResult{Supported: true},
 		HasCapSysAdmin: ProbeResult{Supported: true},
 		HasCapPerfmon:  ProbeResult{Supported: false},
+		Tracefs:        ProbeResult{Supported: true},
+		Debugfs:        ProbeResult{Supported: true},
+		Securityfs:     ProbeResult{Supported: true},
+		BPFfs:          ProbeResult{Supported: false},
 		JITEnabled:     ProbeResult{Supported: true},
 		JITHardened:    ProbeResult{Supported: false},
 		JITKallsyms:    ProbeResult{Supported: true},
@@ -206,6 +250,15 @@ func TestSystemFeatures_String(t *testing.T) {
 	}
 	if !strings.Contains(output, "CONFIG_BPF_LSM: y") {
 		t.Error("String() should contain kernel config")
+	}
+	if !strings.Contains(output, "Filesystems:") {
+		t.Error("String() should contain Filesystems section")
+	}
+	if !strings.Contains(output, "tracefs: yes") {
+		t.Error("String() should show tracefs status")
+	}
+	if !strings.Contains(output, "bpffs: no") {
+		t.Error("String() should show bpffs status")
 	}
 	if !strings.Contains(output, "JIT:") {
 		t.Error("String() should contain JIT section")

@@ -29,6 +29,7 @@ type probeConfig struct {
 	kernelConfig       bool
 	capabilities       bool
 	jit                bool
+	filesystems        bool
 	lsmPath            string // custom path for LSM file (for testing)
 }
 
@@ -71,6 +72,14 @@ func WithJIT() ProbeOption {
 	}
 }
 
+// WithFilesystems probes filesystem mounts relevant to BPF operations
+// (tracefs, debugfs, securityfs, bpffs).
+func WithFilesystems() ProbeOption {
+	return func(c *probeConfig) {
+		c.filesystems = true
+	}
+}
+
 // WithLSMPath sets a custom path for the LSM file.
 // This is primarily for testing; production code uses the default /sys/kernel/security/lsm.
 func WithLSMPath(path string) ProbeOption {
@@ -92,6 +101,7 @@ func WithAll() ProbeOption {
 		c.kernelConfig = true
 		c.capabilities = true
 		c.jit = true
+		c.filesystems = true
 	}
 }
 
@@ -180,6 +190,14 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 		sf.JITHardened = probeJITHardened()
 		sf.JITKallsyms = probeJITKallsyms()
 		sf.JITLimit = probeJITLimit()
+	}
+
+	// Probe filesystem mounts
+	if cfg.filesystems {
+		sf.Tracefs = probeFilesystemMount(tracefsPath, tracefsFallbackPath)
+		sf.Debugfs = probeFilesystemMount(debugfsPath)
+		sf.Securityfs = probeFilesystemMount(securityfsPath)
+		sf.BPFfs = probeFilesystemMount(bpffsPath)
 	}
 
 	return sf, nil

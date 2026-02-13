@@ -63,6 +63,16 @@ type SystemFeatures struct {
 	// Supported=true means unprivileged BPF is disabled (the common/secure default).
 	UnprivilegedBPFDisabled ProbeResult
 
+	// Filesystem mounts relevant to BPF operations
+	// Tracefs: required for kprobe/tracepoint attachment via ftrace.
+	Tracefs ProbeResult
+	// Debugfs: legacy mount point, fallback for tracefs on older kernels.
+	Debugfs ProbeResult
+	// Securityfs: required for reading LSM state (/sys/kernel/security/*).
+	Securityfs ProbeResult
+	// BPFfs: required for pinning BPF maps and programs (/sys/fs/bpf).
+	BPFfs ProbeResult
+
 	// JIT compiler status (sysctl values)
 	// JITEnabled: Supported=true means BPF JIT compiler is enabled.
 	// Values: 0=disabled, 1=enabled, 2=enabled+debug (emit to kernel log).

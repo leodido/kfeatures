@@ -89,6 +89,30 @@ func probeJITLimit() int64 {
 	return n
 }
 
+// Filesystem mount paths for BPF-relevant pseudo-filesystems.
+const (
+	tracefsPath         = "/sys/kernel/tracing"
+	tracefsFallbackPath = "/sys/kernel/debug/tracing"
+	debugfsPath         = "/sys/kernel/debug"
+	securityfsPath      = "/sys/kernel/security"
+	bpffsPath           = "/sys/fs/bpf"
+)
+
+// probeFilesystemMount checks if any of the given paths exist and are directories.
+// Returns Supported=true if at least one path is a mounted directory.
+func probeFilesystemMount(paths ...string) ProbeResult {
+	for _, path := range paths {
+		info, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+		if info.IsDir() {
+			return ProbeResult{Supported: true}
+		}
+	}
+	return ProbeResult{Supported: false}
+}
+
 // probeSysctlNonZero reads a sysctl file and returns Supported=true
 // if the value is a non-zero integer.
 func probeSysctlNonZero(path string) ProbeResult {
