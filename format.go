@@ -70,6 +70,8 @@ func (sf *SystemFeatures) String() string {
 		writeConfig(&b, "  CONFIG_IMA", sf.KernelConfig.IMA)
 		writeConfig(&b, "  CONFIG_DEBUG_INFO_BTF", sf.KernelConfig.BTF)
 		writeConfig(&b, "  CONFIG_FPROBE", sf.KernelConfig.KprobeMulti)
+		fmt.Fprintf(&b, "  Preemption model: %s\n", sf.KernelConfig.Preempt)
+		fmt.Fprintf(&b, "  Sleepable BPF: %s\n", map[bool]string{true: "yes", false: "no"}[sf.KernelConfig.Preempt.SupportsSleepable()])
 	}
 
 	return b.String()

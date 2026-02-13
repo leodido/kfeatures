@@ -66,6 +66,8 @@ func (sf *SystemFeatures) Result(f Feature) (ProbeResult, bool) {
 		return sf.BPFSyscall, true
 	case FeaturePerfEventOpen:
 		return sf.PerfEventOpen, true
+	case FeatureSleepableBPF:
+		return ProbeResult{Supported: sf.PreemptMode.SupportsSleepable()}, true
 	default:
 		return ProbeResult{}, false
 	}
@@ -110,6 +112,11 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 		return "bpf() syscall not available; kernel too old or CONFIG_BPF not enabled"
 	case FeaturePerfEventOpen:
 		return "perf_event_open() syscall not available; kernel too old or CONFIG_PERF_EVENTS not enabled"
+	case FeatureSleepableBPF:
+		if kc != nil {
+			return fmt.Sprintf("kernel preemption model is %s; sleepable BPF (BPF_F_SLEEPABLE) requires CONFIG_PREEMPT or CONFIG_PREEMPT_DYNAMIC", kc.Preempt)
+		}
+		return "cannot determine preemption model; kernel config not available"
 	}
 
 	// Fallback: use the probe error if available.
@@ -149,6 +156,8 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 			needJIT = true
 		case FeatureBPFSyscall, FeaturePerfEventOpen:
 			needSyscalls = true
+		case FeatureSleepableBPF:
+			needKernelConfig = true
 		}
 	}
 

@@ -92,6 +92,10 @@ type SystemFeatures struct {
 	// JITLimit: the memory limit in bytes for JIT-compiled BPF programs (0 if unavailable).
 	JITLimit int64
 
+	// Kernel preemption model (derived from kernel config).
+	// Affects sleepable BPF programs (BPF_F_SLEEPABLE).
+	PreemptMode PreemptMode
+
 	// BPF runtime statistics
 	// BPFStatsEnabled: Supported=true means /proc/sys/kernel/bpf_stats_enabled is non-zero.
 	// When enabled, the kernel collects per-program runtime stats (run count, run time).
@@ -140,6 +144,44 @@ func (v ConfigValue) String() string {
 	}
 }
 
+// PreemptMode represents the kernel preemption model.
+type PreemptMode int
+
+const (
+	// PreemptUnknown means the preemption model could not be determined.
+	PreemptUnknown PreemptMode = iota
+	// PreemptNone means no forced preemption (server workloads).
+	PreemptNone
+	// PreemptVoluntary means voluntary preemption (desktop default).
+	PreemptVoluntary
+	// PreemptFull means full preemption (low-latency).
+	PreemptFull
+	// PreemptDynamic means runtime-switchable preemption (kernel 5.12+).
+	PreemptDynamic
+)
+
+func (m PreemptMode) String() string {
+	switch m {
+	case PreemptNone:
+		return "none"
+	case PreemptVoluntary:
+		return "voluntary"
+	case PreemptFull:
+		return "full"
+	case PreemptDynamic:
+		return "dynamic"
+	default:
+		return "unknown"
+	}
+}
+
+// SupportsSleepable reports whether the preemption model supports
+// sleepable BPF programs (BPF_F_SLEEPABLE). Requires full preemption
+// or dynamic preemption.
+func (m PreemptMode) SupportsSleepable() bool {
+	return m == PreemptFull || m == PreemptDynamic
+}
+
 // KernelConfig holds parsed kernel configuration values.
 type KernelConfig struct {
 	// raw stores all parsed config values for ad-hoc lookups.
@@ -150,6 +192,7 @@ type KernelConfig struct {
 	IMA         ConfigValue // CONFIG_IMA
 	BTF         ConfigValue // CONFIG_DEBUG_INFO_BTF
 	KprobeMulti ConfigValue // CONFIG_FPROBE (required for kprobe.multi)
+	Preempt     PreemptMode // Derived from CONFIG_PREEMPT_*
 }
 
 // Get returns the ConfigValue for a kernel config key.
@@ -179,7 +222,26 @@ func NewKernelConfig(raw map[string]ConfigValue) *KernelConfig {
 		IMA:         copied["IMA"],
 		BTF:         copied["DEBUG_INFO_BTF"],
 		KprobeMulti: copied["FPROBE"],
+		Preempt:     derivePreemptMode(copied),
 	}
+}
+
+// derivePreemptMode determines the preemption model from kernel config values.
+// Priority: dynamic > full > voluntary > none.
+func derivePreemptMode(raw map[string]ConfigValue) PreemptMode {
+	if raw["PREEMPT_DYNAMIC"] == ConfigBuiltin {
+		return PreemptDynamic
+	}
+	if raw["PREEMPT"] == ConfigBuiltin {
+		return PreemptFull
+	}
+	if raw["PREEMPT_VOLUNTARY"] == ConfigBuiltin {
+		return PreemptVoluntary
+	}
+	if raw["PREEMPT_NONE"] == ConfigBuiltin {
+		return PreemptNone
+	}
+	return PreemptUnknown
 }
 
 // Feature represents a kernel capability that can be checked via [Check].
@@ -214,6 +276,8 @@ const (
 	FeatureBPFSyscall
 	// FeaturePerfEventOpen requires the perf_event_open() syscall to be available.
 	FeaturePerfEventOpen
+	// FeatureSleepableBPF requires a preemptible kernel for BPF_F_SLEEPABLE programs.
+	FeatureSleepableBPF
 )
 
 var featureNames = map[Feature]string{
@@ -231,6 +295,7 @@ var featureNames = map[Feature]string{
 	FeatureJITHardened:   "BPF JIT hardening",
 	FeatureBPFSyscall:    "bpf() syscall",
 	FeaturePerfEventOpen: "perf_event_open() syscall",
+	FeatureSleepableBPF:  "sleepable BPF",
 }
 
 func (f Feature) String() string {

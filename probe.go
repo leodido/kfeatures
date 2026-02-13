@@ -130,6 +130,9 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 	if cfg.kernelConfig {
 		kc, _ = readKernelConfig()
 		sf.KernelConfig = kc
+		if kc != nil {
+			sf.PreemptMode = kc.Preempt
+		}
 		// Ignore errors: kernel config is optional
 	}
 

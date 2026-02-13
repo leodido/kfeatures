@@ -23,6 +23,7 @@ func TestSystemFeatures_Result(t *testing.T) {
 		JITHardened:    ProbeResult{Supported: false},
 		BPFSyscall:     ProbeResult{Supported: true},
 		PerfEventOpen:  ProbeResult{Supported: true},
+		PreemptMode:    PreemptDynamic,
 	}
 
 	tests := []struct {
@@ -44,6 +45,7 @@ func TestSystemFeatures_Result(t *testing.T) {
 		{FeatureJITHardened, true, false},
 		{FeatureBPFSyscall, true, true},
 		{FeaturePerfEventOpen, true, true},
+		{FeatureSleepableBPF, true, true},
 		{Feature(999), false, false},
 	}
 
@@ -146,6 +148,24 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 		}
 	})
 
+	t.Run("sleepable BPF with non-preemptible kernel", func(t *testing.T) {
+		sf := &SystemFeatures{
+			KernelConfig: NewKernelConfig(map[string]ConfigValue{"PREEMPT_NONE": ConfigBuiltin}),
+		}
+		got := sf.Diagnose(FeatureSleepableBPF)
+		if got != "kernel preemption model is none; sleepable BPF (BPF_F_SLEEPABLE) requires CONFIG_PREEMPT or CONFIG_PREEMPT_DYNAMIC" {
+			t.Errorf("Diagnose(FeatureSleepableBPF) = %q", got)
+		}
+	})
+
+	t.Run("sleepable BPF without kernel config", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		got := sf.Diagnose(FeatureSleepableBPF)
+		if got != "cannot determine preemption model; kernel config not available" {
+			t.Errorf("Diagnose(FeatureSleepableBPF) = %q", got)
+		}
+	})
+
 	t.Run("no kernel config fallback", func(t *testing.T) {
 		sf := &SystemFeatures{}
 		got := sf.Diagnose(FeatureBPFLSM)
@@ -212,6 +232,17 @@ func TestProbeOptionsFor(t *testing.T) {
 		}
 		if !cfg.syscalls {
 			t.Error("expected syscalls=true for syscall features")
+		}
+	})
+
+	t.Run("sleepable BPF needs kernel config", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureSleepableBPF})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.kernelConfig {
+			t.Error("expected kernelConfig=true for sleepable BPF")
 		}
 	})
 

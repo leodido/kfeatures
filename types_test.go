@@ -151,12 +151,60 @@ func TestFeature_String(t *testing.T) {
 		{FeatureJITHardened, "BPF JIT hardening"},
 		{FeatureBPFSyscall, "bpf() syscall"},
 		{FeaturePerfEventOpen, "perf_event_open() syscall"},
+		{FeatureSleepableBPF, "sleepable BPF"},
 		{Feature(999), "Feature(999)"},
 	}
 	for _, tt := range tests {
 		if got := tt.f.String(); got != tt.want {
 			t.Errorf("Feature(%d).String() = %q, want %q", tt.f, got, tt.want)
 		}
+	}
+}
+
+func TestPreemptMode(t *testing.T) {
+	tests := []struct {
+		mode             PreemptMode
+		wantStr          string
+		wantSleepable    bool
+	}{
+		{PreemptUnknown, "unknown", false},
+		{PreemptNone, "none", false},
+		{PreemptVoluntary, "voluntary", false},
+		{PreemptFull, "full", true},
+		{PreemptDynamic, "dynamic", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.wantStr, func(t *testing.T) {
+			if got := tt.mode.String(); got != tt.wantStr {
+				t.Errorf("String() = %q, want %q", got, tt.wantStr)
+			}
+			if got := tt.mode.SupportsSleepable(); got != tt.wantSleepable {
+				t.Errorf("SupportsSleepable() = %v, want %v", got, tt.wantSleepable)
+			}
+		})
+	}
+}
+
+func TestDerivePreemptMode(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  map[string]ConfigValue
+		want PreemptMode
+	}{
+		{"dynamic", map[string]ConfigValue{"PREEMPT_DYNAMIC": ConfigBuiltin}, PreemptDynamic},
+		{"full", map[string]ConfigValue{"PREEMPT": ConfigBuiltin}, PreemptFull},
+		{"voluntary", map[string]ConfigValue{"PREEMPT_VOLUNTARY": ConfigBuiltin}, PreemptVoluntary},
+		{"none", map[string]ConfigValue{"PREEMPT_NONE": ConfigBuiltin}, PreemptNone},
+		{"empty", map[string]ConfigValue{}, PreemptUnknown},
+		{"dynamic wins", map[string]ConfigValue{"PREEMPT_DYNAMIC": ConfigBuiltin, "PREEMPT": ConfigBuiltin}, PreemptDynamic},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kc := NewKernelConfig(tt.raw)
+			if kc.Preempt != tt.want {
+				t.Errorf("Preempt = %v, want %v", kc.Preempt, tt.want)
+			}
+		})
 	}
 }
 
