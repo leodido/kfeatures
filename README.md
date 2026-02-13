@@ -1,8 +1,49 @@
 # kfeatures
 
-Kernel feature detection for eBPF programs in Go.
+> Can my eBPF tool actually run here, and if not, exactly what needs to change?
 
-kfeatures probes kernel capabilities at runtime, enabling early failure with clear, actionable error messages when requirements aren't met. It complements [`cilium/ebpf/features`](https://pkg.go.dev/github.com/cilium/ebpf/features) by adding BTF availability detection, security subsystem probing (LSM, IMA), kernel config parsing, capability checking, and composite feature validation with operator-facing diagnostics.
+kfeatures is a pure-Go library that answers this question.
+
+It probes kernel capabilities at runtime and returns actionable diagnostics: not just "unsupported", but *why* and *how to fix it*.
+
+```go
+if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err != nil {
+    var fe *kfeatures.FeatureError
+    if errors.As(err, &fe) {
+        log.Fatalf("%s — %s", fe.Feature, fe.Reason)
+        // Output: BPF LSM — CONFIG_BPF_LSM=y but 'bpf' not in active LSM list; add lsm=...,bpf to kernel boot params
+    }
+}
+```
+
+## Why not `cilium/ebpf/features` or `bpftool`?
+
+[`cilium/ebpf/features`](https://pkg.go.dev/github.com/cilium/ebpf/features) answers: *"Does this kernel support program type X?"*
+
+[`bpftool feature probe`](https://man.archlinux.org/man/bpftool-feature.8.en) answers: *"What BPF features does this kernel have?"* (CLI only, not embeddable in Go)
+
+Neither tells you whether your tool can **actually run**. For example, BPF LSM requires three things simultaneously: `CONFIG_BPF_LSM=y` in the kernel config, `bpf` in the active LSM boot parameter list, and the LSM program type supported by the running kernel. `cilium/ebpf/features` can only check the last one. `bpftool` can check the first and last, but not the second. Neither provides remediation guidance.
+
+| Capability | `cilium/ebpf/features` | `bpftool feature probe` | **`kfeatures`** |
+|---|:---:|:---:|:---:|
+| BPF program type probes | ✅ | ✅ | ✅ |
+| BPF map type / helper probes | ✅ | ✅ | — |
+| **BTF availability** (`/sys/kernel/btf/vmlinux`) | ❌ | ❌\* | ✅ |
+| **Kernel config parsing** (any `CONFIG_*`, =y/=m) | ❌ | ✅ | ✅ |
+| **Active LSM list** (`/sys/kernel/security/lsm`) | ❌ | ❌ | ✅ |
+| **BPF LSM enabled** (config + boot params + program type) | ❌ | ❌ | ✅ |
+| **IMA detection** (LSM list + securityfs directory) | ❌ | ❌ | ✅ |
+| **Process capabilities** (CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON) | ❌ | ❌ | ✅ |
+| **Unprivileged BPF status** | ❌ | ✅ | ✅ |
+| **Composite feature validation** | ❌ | ❌ | ✅ |
+| **Actionable diagnostics** (remediation steps) | ❌ | ❌ | ✅ |
+| Selective probing (minimize overhead) | Per-function | All-or-nothing | ✅ |
+| Pure Go, no CGO | ✅ | ❌ | ✅ |
+| Usable as a Go library | ✅ | ❌ | ✅ |
+
+\* `bpftool` checks `CONFIG_DEBUG_INFO_BTF` in kernel config but does not verify `/sys/kernel/btf/vmlinux` exists.
+
+Other Go projects ([libbpfgo](https://github.com/aquasecurity/libbpfgo), [Tetragon](https://github.com/cilium/tetragon), [Falco libs](https://github.com/falcosecurity/libs)) have some feature detection built in, but none is a standalone reusable library. They are either CGO-dependent, tightly coupled to their parent project, or written in C/C++.
 
 ## Installation
 
@@ -23,7 +64,6 @@ if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err !=
     var fe *kfeatures.FeatureError
     if errors.As(err, &fe) {
         log.Fatalf("kernel not ready: %s — %s", fe.Feature, fe.Reason)
-        // Output: kernel not ready: BPF LSM — CONFIG_BPF_LSM not set; rebuild kernel with CONFIG_BPF_LSM=y
     }
 }
 ```
@@ -38,6 +78,40 @@ if err != nil {
     log.Fatal(err)
 }
 fmt.Println(sf)
+```
+
+Output:
+
+```
+Kernel: 6.1.0-generic
+
+Program Types:
+  LSM: yes
+  kprobe: yes
+  kprobe.multi: yes
+  tracepoint: yes
+  fentry: yes
+
+Core:
+  BTF: yes
+
+Security Subsystems:
+  BPF LSM enabled: yes
+  IMA enabled: no
+  IMA directory: yes
+  Active LSMs: lockdown, capability, yama, apparmor, bpf
+
+Capabilities:
+  CAP_BPF: yes
+  CAP_SYS_ADMIN: yes
+  CAP_PERFMON: yes
+  Unprivileged BPF disabled: yes
+
+Kernel Config:
+  CONFIG_BPF_LSM: y
+  CONFIG_IMA: y
+  CONFIG_DEBUG_INFO_BTF: y
+  CONFIG_FPROBE: y
 ```
 
 ### Selective probing
@@ -74,6 +148,28 @@ kfeatures probe --json
 kfeatures config
 ```
 
+JSON output example:
+
+```json
+{
+  "LSMProgramType": {"Supported": true},
+  "Kprobe": {"Supported": true},
+  "KprobeMulti": {"Supported": true},
+  "Tracepoint": {"Supported": true},
+  "Fentry": {"Supported": true},
+  "BTF": {"Supported": true},
+  "BPFLSMEnabled": {"Supported": true},
+  "ActiveLSMs": ["lockdown", "capability", "yama", "apparmor", "bpf"],
+  "IMAEnabled": {"Supported": false},
+  "IMADirectory": {"Supported": true},
+  "HasCapBPF": {"Supported": true},
+  "HasCapSysAdmin": {"Supported": true},
+  "HasCapPerfmon": {"Supported": true},
+  "UnprivilegedBPFDisabled": {"Supported": true},
+  "KernelVersion": "6.1.0-generic"
+}
+```
+
 ## What it detects
 
 | Category | Features |
@@ -83,16 +179,6 @@ kfeatures config
 | Security | BPF LSM enabled, IMA enabled, active LSM list |
 | Capabilities | CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON, unprivileged BPF status |
 | Kernel config | CONFIG_BPF_LSM, CONFIG_IMA, CONFIG_DEBUG_INFO_BTF, CONFIG_FPROBE, any CONFIG_* |
-
-## Value over `cilium/ebpf/features`
-
-- **BTF availability** — `/sys/kernel/btf/vmlinux` check (not in cilium/ebpf)
-- **Security subsystems** — active LSM list, IMA detection (not in cilium/ebpf)
-- **Kernel config parsing** — `/proc/config.gz`, `/boot/config-*`, `/lib/modules/*/config` (not in cilium/ebpf)
-- **Composite features** — e.g., kprobe.multi requires both program type support AND CONFIG_FPROBE
-- **Capability detection** — CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON (not in cilium/ebpf)
-- **Actionable diagnostics** — operator-facing error messages with remediation steps
-- **Aggregated results** — single `SystemFeatures` struct vs. individual function calls
 
 ## Requirements
 
