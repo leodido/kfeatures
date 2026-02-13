@@ -30,6 +30,13 @@ func (e *FeatureError) Unwrap() error {
 
 // SystemFeatures holds the results of all kernel feature probes.
 type SystemFeatures struct {
+	// Syscall availability
+	// BPFSyscall: Supported=true means the bpf() syscall is available.
+	BPFSyscall ProbeResult
+	// PerfEventOpen: Supported=true means the perf_event_open() syscall is available.
+	// Required for kprobe/tracepoint/uprobe attachment.
+	PerfEventOpen ProbeResult
+
 	// Program types (runtime probes via cilium/ebpf)
 	LSMProgramType ProbeResult
 	Kprobe         ProbeResult
@@ -197,6 +204,10 @@ const (
 	FeatureJITEnabled
 	// FeatureJITHardened requires BPF JIT hardening to be active.
 	FeatureJITHardened
+	// FeatureBPFSyscall requires the bpf() syscall to be available.
+	FeatureBPFSyscall
+	// FeaturePerfEventOpen requires the perf_event_open() syscall to be available.
+	FeaturePerfEventOpen
 )
 
 var featureNames = map[Feature]string{
@@ -210,8 +221,10 @@ var featureNames = map[Feature]string{
 	FeatureCapBPF:      "CAP_BPF",
 	FeatureCapSysAdmin: "CAP_SYS_ADMIN",
 	FeatureCapPerfmon:  "CAP_PERFMON",
-	FeatureJITEnabled:  "BPF JIT",
-	FeatureJITHardened: "BPF JIT hardening",
+	FeatureJITEnabled:    "BPF JIT",
+	FeatureJITHardened:   "BPF JIT hardening",
+	FeatureBPFSyscall:    "bpf() syscall",
+	FeaturePerfEventOpen: "perf_event_open() syscall",
 }
 
 func (f Feature) String() string {

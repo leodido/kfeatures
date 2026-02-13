@@ -3,9 +3,11 @@
 package kfeatures
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -111,6 +113,44 @@ func probeFilesystemMount(paths ...string) ProbeResult {
 		}
 	}
 	return ProbeResult{Supported: false}
+}
+
+// probeBPFSyscall checks if the bpf() syscall is available.
+// It issues a minimal BPF_PROG_TYPE_UNSPEC command that is guaranteed to fail
+// with EINVAL (syscall exists) or ENOSYS (syscall not available).
+func probeBPFSyscall() ProbeResult {
+	// BPF_PROG_TYPE_UNSPEC with NULL attr and zero size.
+	// On kernels with bpf() this returns EINVAL or EPERM.
+	// On kernels without bpf() this returns ENOSYS.
+	_, _, errno := unix.Syscall(unix.SYS_BPF, 0, 0, 0)
+	if errors.Is(errno, unix.ENOSYS) {
+		return ProbeResult{Supported: false}
+	}
+	// Any other error (EINVAL, EPERM, EFAULT) means the syscall exists.
+	return ProbeResult{Supported: true}
+}
+
+// probePerfEventOpen checks if the perf_event_open() syscall is available.
+// Required for kprobe/tracepoint/uprobe attachment.
+// It issues a minimal call with invalid args to distinguish ENOSYS from other errors.
+func probePerfEventOpen() ProbeResult {
+	// perf_event_open with a zeroed perf_event_attr and invalid parameters.
+	// This will fail but not with ENOSYS on kernels that support it.
+	attr := unix.PerfEventAttr{}
+	_, _, errno := unix.Syscall6(
+		unix.SYS_PERF_EVENT_OPEN,
+		uintptr(unsafe.Pointer(&attr)),
+		uintptr(0),    // pid: current process
+		uintptr(^uint(0)), // cpu: -1 (any CPU, but combined with pid=0 this is invalid without a group)
+		uintptr(^uint(0)), // group_fd: -1
+		uintptr(0),    // flags
+		0,
+	)
+	if errors.Is(errno, unix.ENOSYS) {
+		return ProbeResult{Supported: false}
+	}
+	// EINVAL, EPERM, ENOENT, etc. all mean the syscall exists.
+	return ProbeResult{Supported: true}
 }
 
 // probeSysctlNonZero reads a sysctl file and returns Supported=true

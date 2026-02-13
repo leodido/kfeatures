@@ -21,6 +21,8 @@ func TestSystemFeatures_Result(t *testing.T) {
 		HasCapPerfmon:  ProbeResult{Supported: false},
 		JITEnabled:     ProbeResult{Supported: true},
 		JITHardened:    ProbeResult{Supported: false},
+		BPFSyscall:     ProbeResult{Supported: true},
+		PerfEventOpen:  ProbeResult{Supported: true},
 	}
 
 	tests := []struct {
@@ -40,6 +42,8 @@ func TestSystemFeatures_Result(t *testing.T) {
 		{FeatureCapPerfmon, true, false},
 		{FeatureJITEnabled, true, true},
 		{FeatureJITHardened, true, false},
+		{FeatureBPFSyscall, true, true},
+		{FeaturePerfEventOpen, true, true},
 		{Feature(999), false, false},
 	}
 
@@ -132,6 +136,16 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 		}
 	})
 
+	t.Run("syscall diagnostics", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		if got := sf.Diagnose(FeatureBPFSyscall); got != "bpf() syscall not available; kernel too old or CONFIG_BPF not enabled" {
+			t.Errorf("Diagnose(FeatureBPFSyscall) = %q", got)
+		}
+		if got := sf.Diagnose(FeaturePerfEventOpen); got != "perf_event_open() syscall not available; kernel too old or CONFIG_PERF_EVENTS not enabled" {
+			t.Errorf("Diagnose(FeaturePerfEventOpen) = %q", got)
+		}
+	})
+
 	t.Run("no kernel config fallback", func(t *testing.T) {
 		sf := &SystemFeatures{}
 		got := sf.Diagnose(FeatureBPFLSM)
@@ -187,6 +201,17 @@ func TestProbeOptionsFor(t *testing.T) {
 		}
 		if !cfg.jit {
 			t.Error("expected jit=true for JIT features")
+		}
+	})
+
+	t.Run("syscall features", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureBPFSyscall, FeaturePerfEventOpen})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.syscalls {
+			t.Error("expected syscalls=true for syscall features")
 		}
 	})
 

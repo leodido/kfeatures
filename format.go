@@ -12,6 +12,11 @@ func (sf *SystemFeatures) String() string {
 	fmt.Fprintf(&b, "Kernel: %s\n", sf.KernelVersion)
 	b.WriteString("\n")
 
+	b.WriteString("Syscalls:\n")
+	writeResult(&b, "  bpf()", sf.BPFSyscall)
+	writeResult(&b, "  perf_event_open()", sf.PerfEventOpen)
+	b.WriteString("\n")
+
 	b.WriteString("Program Types:\n")
 	writeResult(&b, "  LSM", sf.LSMProgramType)
 	writeResult(&b, "  kprobe", sf.Kprobe)

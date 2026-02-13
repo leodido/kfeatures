@@ -30,6 +30,7 @@ type probeConfig struct {
 	capabilities       bool
 	jit                bool
 	filesystems        bool
+	syscalls           bool
 	lsmPath            string // custom path for LSM file (for testing)
 }
 
@@ -72,6 +73,13 @@ func WithJIT() ProbeOption {
 	}
 }
 
+// WithSyscalls probes availability of BPF-relevant syscalls (bpf(), perf_event_open).
+func WithSyscalls() ProbeOption {
+	return func(c *probeConfig) {
+		c.syscalls = true
+	}
+}
+
 // WithFilesystems probes filesystem mounts relevant to BPF operations
 // (tracefs, debugfs, securityfs, bpffs).
 func WithFilesystems() ProbeOption {
@@ -102,6 +110,7 @@ func WithAll() ProbeOption {
 		c.capabilities = true
 		c.jit = true
 		c.filesystems = true
+		c.syscalls = true
 	}
 }
 
@@ -122,6 +131,12 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 		kc, _ = readKernelConfig()
 		sf.KernelConfig = kc
 		// Ignore errors: kernel config is optional
+	}
+
+	// Probe syscall availability
+	if cfg.syscalls {
+		sf.BPFSyscall = probeBPFSyscall()
+		sf.PerfEventOpen = probePerfEventOpen()
 	}
 
 	// Probe program types

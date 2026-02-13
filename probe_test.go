@@ -206,6 +206,8 @@ func TestCacheReset(t *testing.T) {
 func TestSystemFeatures_String(t *testing.T) {
 	sf := &SystemFeatures{
 		KernelVersion:  "6.1.0-test",
+		BPFSyscall:     ProbeResult{Supported: true},
+		PerfEventOpen:  ProbeResult{Supported: true},
 		LSMProgramType: ProbeResult{Supported: true},
 		Kprobe:         ProbeResult{Supported: true},
 		KprobeMulti:    ProbeResult{Supported: true},
@@ -238,6 +240,15 @@ func TestSystemFeatures_String(t *testing.T) {
 	output := sf.String()
 	if !strings.Contains(output, "6.1.0-test") {
 		t.Error("String() should contain kernel version")
+	}
+	if !strings.Contains(output, "Syscalls:") {
+		t.Error("String() should contain Syscalls section")
+	}
+	if !strings.Contains(output, "bpf(): yes") {
+		t.Error("String() should show bpf() syscall status")
+	}
+	if !strings.Contains(output, "perf_event_open(): yes") {
+		t.Error("String() should show perf_event_open() syscall status")
 	}
 	if !strings.Contains(output, "BTF: yes") {
 		t.Error("String() should contain BTF status")

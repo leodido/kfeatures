@@ -62,6 +62,10 @@ func (sf *SystemFeatures) Result(f Feature) (ProbeResult, bool) {
 		return sf.JITEnabled, true
 	case FeatureJITHardened:
 		return sf.JITHardened, true
+	case FeatureBPFSyscall:
+		return sf.BPFSyscall, true
+	case FeaturePerfEventOpen:
+		return sf.PerfEventOpen, true
 	default:
 		return ProbeResult{}, false
 	}
@@ -102,6 +106,10 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 		return "BPF JIT disabled; set /proc/sys/net/core/bpf_jit_enable to 1"
 	case FeatureJITHardened:
 		return "BPF JIT hardening disabled; set /proc/sys/net/core/bpf_jit_harden to 1 or 2"
+	case FeatureBPFSyscall:
+		return "bpf() syscall not available; kernel too old or CONFIG_BPF not enabled"
+	case FeaturePerfEventOpen:
+		return "perf_event_open() syscall not available; kernel too old or CONFIG_PERF_EVENTS not enabled"
 	}
 
 	// Fallback: use the probe error if available.
@@ -119,6 +127,7 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 	var needKernelConfig bool
 	var needCapabilities bool
 	var needJIT bool
+	var needSyscalls bool
 	var programTypes []ebpf.ProgramType
 
 	for _, f := range reqs {
@@ -138,10 +147,15 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 			needCapabilities = true
 		case FeatureJITEnabled, FeatureJITHardened:
 			needJIT = true
+		case FeatureBPFSyscall, FeaturePerfEventOpen:
+			needSyscalls = true
 		}
 	}
 
 	var opts []ProbeOption
+	if needSyscalls {
+		opts = append(opts, WithSyscalls())
+	}
 	if needSecurity {
 		opts = append(opts, WithSecuritySubsystems())
 	}
