@@ -12,6 +12,14 @@ import (
 
 // Check validates the specified requirements and returns a *[FeatureError]
 // for the first unsatisfied requirement, or nil if all are met.
+//
+// Accepted requirement kinds:
+//   - [Feature] (stable boolean gates)
+//   - [FeatureGroup] (reusable requirement presets)
+//   - [ProgramTypeRequirement], [MapTypeRequirement], [ProgramHelperRequirement]
+//
+// Check is the only gate entrypoint. Keep ProbeWith/WithX for diagnostics-only
+// data collection, not for expressing required readiness conditions.
 // Kernel config is always probed to provide actionable diagnostics.
 func Check(required ...Requirement) error {
 	rs := normalizeRequirements(required)
@@ -203,6 +211,11 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 
 // probeOptionsFor determines which [ProbeOption] functions are needed
 // for the given feature requirements.
+//
+// Classification rule for future additions:
+// promote to [Feature] only when the signal can be expressed as a deterministic
+// requirement with actionable remediation text in Diagnose. Keep descriptive
+// context-only signals probe-only behind WithX options.
 func probeOptionsFor(reqs []Feature) []ProbeOption {
 	var needSecurity bool
 	var needKernelConfig bool

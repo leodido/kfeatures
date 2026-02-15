@@ -36,7 +36,9 @@ type probeConfig struct {
 	lsmPath            string // custom path for LSM file (for testing)
 }
 
-// ProbeOption configures what features to probe.
+// ProbeOption configures what [ProbeWith] collects for diagnostics/reporting.
+// Probe options are not readiness requirements and are intentionally separate
+// from [Requirement] values consumed by [Check].
 type ProbeOption func(*probeConfig)
 
 // WithProgramTypes probes the specified eBPF program types.
