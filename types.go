@@ -208,12 +208,12 @@ type KernelConfig struct {
 	raw map[string]ConfigValue
 
 	// Convenience fields for common checks (populated from raw).
-	BPFLSM       ConfigValue // CONFIG_BPF_LSM
-	IMA          ConfigValue // CONFIG_IMA
-	BTF          ConfigValue // CONFIG_DEBUG_INFO_BTF
-	KprobeMulti  ConfigValue // CONFIG_FPROBE (required for kprobe.multi)
-	JITAlwaysOn  ConfigValue // CONFIG_BPF_JIT_ALWAYS_ON
-	Preempt      PreemptMode // Derived from CONFIG_PREEMPT_*
+	BPFLSM      ConfigValue // CONFIG_BPF_LSM
+	IMA         ConfigValue // CONFIG_IMA
+	BTF         ConfigValue // CONFIG_DEBUG_INFO_BTF
+	KprobeMulti ConfigValue // CONFIG_FPROBE (required for kprobe.multi)
+	JITAlwaysOn ConfigValue // CONFIG_BPF_JIT_ALWAYS_ON
+	Preempt     PreemptMode // Derived from CONFIG_PREEMPT_*
 }
 
 // Get returns the ConfigValue for a kernel config key.
@@ -242,9 +242,9 @@ func NewKernelConfig(raw map[string]ConfigValue) *KernelConfig {
 		BPFLSM:      copied["BPF_LSM"],
 		IMA:         copied["IMA"],
 		BTF:         copied["DEBUG_INFO_BTF"],
-		KprobeMulti:  copied["FPROBE"],
-		JITAlwaysOn:  copied["BPF_JIT_ALWAYS_ON"],
-		Preempt:      derivePreemptMode(copied),
+		KprobeMulti: copied["FPROBE"],
+		JITAlwaysOn: copied["BPF_JIT_ALWAYS_ON"],
+		Preempt:     derivePreemptMode(copied),
 	}
 }
 
@@ -300,24 +300,36 @@ const (
 	FeaturePerfEventOpen
 	// FeatureSleepableBPF requires a preemptible kernel for BPF_F_SLEEPABLE programs.
 	FeatureSleepableBPF
+	// FeatureTracefs requires tracefs to be mounted.
+	FeatureTracefs
+	// FeatureBPFfs requires bpffs to be mounted.
+	FeatureBPFfs
+	// FeatureInitUserNS requires running in the initial user namespace.
+	FeatureInitUserNS
+	// FeatureUnprivilegedBPFDisabled requires unprivileged BPF to be disabled.
+	FeatureUnprivilegedBPFDisabled
 )
 
 var featureNames = map[Feature]string{
-	FeatureBPFLSM:      "BPF LSM",
-	FeatureBTF:         "BTF",
-	FeatureIMA:         "IMA",
-	FeatureKprobe:      "kprobe",
-	FeatureKprobeMulti: "kprobe.multi",
-	FeatureFentry:      "fentry",
-	FeatureTracepoint:  "tracepoint",
-	FeatureCapBPF:      "CAP_BPF",
-	FeatureCapSysAdmin: "CAP_SYS_ADMIN",
-	FeatureCapPerfmon:  "CAP_PERFMON",
-	FeatureJITEnabled:    "BPF JIT",
-	FeatureJITHardened:   "BPF JIT hardening",
-	FeatureBPFSyscall:    "bpf() syscall",
-	FeaturePerfEventOpen: "perf_event_open() syscall",
-	FeatureSleepableBPF:  "sleepable BPF",
+	FeatureBPFLSM:                  "BPF LSM",
+	FeatureBTF:                     "BTF",
+	FeatureIMA:                     "IMA",
+	FeatureKprobe:                  "kprobe",
+	FeatureKprobeMulti:             "kprobe.multi",
+	FeatureFentry:                  "fentry",
+	FeatureTracepoint:              "tracepoint",
+	FeatureCapBPF:                  "CAP_BPF",
+	FeatureCapSysAdmin:             "CAP_SYS_ADMIN",
+	FeatureCapPerfmon:              "CAP_PERFMON",
+	FeatureJITEnabled:              "BPF JIT",
+	FeatureJITHardened:             "BPF JIT hardening",
+	FeatureBPFSyscall:              "bpf() syscall",
+	FeaturePerfEventOpen:           "perf_event_open() syscall",
+	FeatureSleepableBPF:            "sleepable BPF",
+	FeatureTracefs:                 "tracefs",
+	FeatureBPFfs:                   "bpffs",
+	FeatureInitUserNS:              "initial user namespace",
+	FeatureUnprivilegedBPFDisabled: "unprivileged BPF disabled",
 }
 
 func (f Feature) String() string {

@@ -76,7 +76,7 @@ func probeCmd() *cobra.Command {
 
 // CheckOptions defines flags for the check subcommand.
 type CheckOptions struct {
-	Require []string `flag:"require" flagshort:"r" flagdescr:"Required features (comma-separated: bpf-syscall,perf-event-open,bpf-lsm,btf,ima,kprobe,kprobe-multi,fentry,tracepoint,cap-bpf,cap-sys-admin,cap-perfmon,jit,jit-hardened,sleepable-bpf)" flagrequired:"true"`
+	Require []string `flag:"require" flagshort:"r" flagdescr:"Required features (comma-separated: bpf-syscall,perf-event-open,bpf-lsm,btf,ima,kprobe,kprobe-multi,fentry,tracepoint,cap-bpf,cap-sys-admin,cap-perfmon,jit,jit-hardened,sleepable-bpf,tracefs,bpffs,init-user-ns,unprivileged-bpf-disabled)" flagrequired:"true"`
 	JSON    bool     `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
@@ -86,21 +86,25 @@ func (o *CheckOptions) Attach(c *cobra.Command) error {
 
 // featureFromName maps CLI feature names to Feature constants.
 var featureFromName = map[string]kfeatures.Feature{
-	"bpf-lsm":         kfeatures.FeatureBPFLSM,
-	"btf":             kfeatures.FeatureBTF,
-	"ima":             kfeatures.FeatureIMA,
-	"kprobe":          kfeatures.FeatureKprobe,
-	"kprobe-multi":    kfeatures.FeatureKprobeMulti,
-	"fentry":          kfeatures.FeatureFentry,
-	"tracepoint":      kfeatures.FeatureTracepoint,
-	"cap-bpf":         kfeatures.FeatureCapBPF,
-	"cap-sys-admin":   kfeatures.FeatureCapSysAdmin,
-	"cap-perfmon":     kfeatures.FeatureCapPerfmon,
-	"jit":             kfeatures.FeatureJITEnabled,
-	"jit-hardened":    kfeatures.FeatureJITHardened,
-	"bpf-syscall":     kfeatures.FeatureBPFSyscall,
-	"perf-event-open": kfeatures.FeaturePerfEventOpen,
-	"sleepable-bpf":   kfeatures.FeatureSleepableBPF,
+	"bpf-lsm":                   kfeatures.FeatureBPFLSM,
+	"btf":                       kfeatures.FeatureBTF,
+	"ima":                       kfeatures.FeatureIMA,
+	"kprobe":                    kfeatures.FeatureKprobe,
+	"kprobe-multi":              kfeatures.FeatureKprobeMulti,
+	"fentry":                    kfeatures.FeatureFentry,
+	"tracepoint":                kfeatures.FeatureTracepoint,
+	"cap-bpf":                   kfeatures.FeatureCapBPF,
+	"cap-sys-admin":             kfeatures.FeatureCapSysAdmin,
+	"cap-perfmon":               kfeatures.FeatureCapPerfmon,
+	"jit":                       kfeatures.FeatureJITEnabled,
+	"jit-hardened":              kfeatures.FeatureJITHardened,
+	"bpf-syscall":               kfeatures.FeatureBPFSyscall,
+	"perf-event-open":           kfeatures.FeaturePerfEventOpen,
+	"sleepable-bpf":             kfeatures.FeatureSleepableBPF,
+	"tracefs":                   kfeatures.FeatureTracefs,
+	"bpffs":                     kfeatures.FeatureBPFfs,
+	"init-user-ns":              kfeatures.FeatureInitUserNS,
+	"unprivileged-bpf-disabled": kfeatures.FeatureUnprivilegedBPFDisabled,
 }
 
 func checkCmd() *cobra.Command {
@@ -115,7 +119,7 @@ Exits with code 0 if all requirements are met, 1 if any are missing.
 Available features:
   bpf-syscall, perf-event-open, bpf-lsm, btf, ima, kprobe, kprobe-multi,
   fentry, tracepoint, cap-bpf, cap-sys-admin, cap-perfmon, jit, jit-hardened,
-  sleepable-bpf`,
+  sleepable-bpf, tracefs, bpffs, init-user-ns, unprivileged-bpf-disabled`,
 		PreRunE: func(c *cobra.Command, args []string) error {
 			return structcli.Unmarshal(c, opts)
 		},
