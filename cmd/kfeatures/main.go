@@ -76,7 +76,7 @@ func probeCmd() *cobra.Command {
 
 // CheckOptions defines flags for the check subcommand.
 type CheckOptions struct {
-	Require []string `flag:"require" flagshort:"r" flagdescr:"Required features (comma-separated: bpf-syscall,perf-event-open,bpf-lsm,btf,ima,kprobe,kprobe-multi,fentry,tracepoint,cap-bpf,cap-sys-admin,cap-perfmon,jit,jit-hardened,sleepable-bpf,tracefs,bpffs,init-user-ns,unprivileged-bpf-disabled)" flagrequired:"true"`
+	Require []string `flag:"require" flagshort:"r" flagdescr:"Required features (comma-separated: bpf-syscall,perf-event-open,bpf-lsm,btf,ima,kprobe,kprobe-multi,fentry,tracepoint,cap-bpf,cap-sys-admin,cap-perfmon,jit,jit-hardened,sleepable-bpf,tracefs,bpffs,init-user-ns,unprivileged-bpf-disabled,bpf-stats-enabled)" flagrequired:"true"`
 	JSON    bool     `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
@@ -105,6 +105,7 @@ var featureFromName = map[string]kfeatures.Feature{
 	"bpffs":                     kfeatures.FeatureBPFFS,
 	"init-user-ns":              kfeatures.FeatureInitUserNS,
 	"unprivileged-bpf-disabled": kfeatures.FeatureUnprivilegedBPFDisabled,
+	"bpf-stats-enabled":         kfeatures.FeatureBPFStatsEnabled,
 }
 
 func checkCmd() *cobra.Command {
@@ -119,7 +120,8 @@ Exits with code 0 if all requirements are met, 1 if any are missing.
 Available features:
   bpf-syscall, perf-event-open, bpf-lsm, btf, ima, kprobe, kprobe-multi,
   fentry, tracepoint, cap-bpf, cap-sys-admin, cap-perfmon, jit, jit-hardened,
-  sleepable-bpf, tracefs, bpffs, init-user-ns, unprivileged-bpf-disabled`,
+  sleepable-bpf, tracefs, bpffs, init-user-ns, unprivileged-bpf-disabled,
+  bpf-stats-enabled`,
 		PreRunE: func(c *cobra.Command, args []string) error {
 			return structcli.Unmarshal(c, opts)
 		},
