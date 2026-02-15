@@ -3,7 +3,12 @@
 package kfeatures
 
 import (
+	"errors"
+	"reflect"
 	"testing"
+
+	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/asm"
 )
 
 func TestSystemFeatures_Result(t *testing.T) {
@@ -252,4 +257,70 @@ func TestProbeOptionsFor(t *testing.T) {
 			t.Errorf("expected 0 options for nil, got %d", len(opts))
 		}
 	})
+}
+
+func TestNormalizeRequirements(t *testing.T) {
+	rs := normalizeRequirements([]Requirement{
+		FeatureBTF,
+		FeatureGroup{
+			FeatureKprobe,
+			RequireProgramType(ebpf.XDP),
+			RequireMapType(ebpf.Hash),
+			RequireProgramHelper(ebpf.Kprobe, asm.FnGetCurrentPidTgid),
+		},
+		FeatureGroup{
+			FeatureBTF, // duplicate
+			FeatureCapBPF,
+		},
+		RequireProgramType(ebpf.XDP),                               // duplicate
+		RequireMapType(ebpf.Hash),                                  // duplicate
+		RequireProgramHelper(ebpf.Kprobe, asm.FnGetCurrentPidTgid), // duplicate
+	})
+
+	if !reflect.DeepEqual(rs.features, []Feature{
+		FeatureBTF,
+		FeatureKprobe,
+		FeatureCapBPF,
+	}) {
+		t.Fatalf("features = %#v", rs.features)
+	}
+
+	if !reflect.DeepEqual(rs.programTypes, []ebpf.ProgramType{
+		ebpf.XDP,
+	}) {
+		t.Fatalf("programTypes = %#v", rs.programTypes)
+	}
+
+	if !reflect.DeepEqual(rs.mapTypes, []ebpf.MapType{
+		ebpf.Hash,
+	}) {
+		t.Fatalf("mapTypes = %#v", rs.mapTypes)
+	}
+
+	if !reflect.DeepEqual(rs.programHelpers, []ProgramHelperRequirement{
+		{
+			ProgramType: ebpf.Kprobe,
+			Helper:      asm.FnGetCurrentPidTgid,
+		},
+	}) {
+		t.Fatalf("programHelpers = %#v", rs.programHelpers)
+	}
+}
+
+func TestCheck_WithFeatureGroup(t *testing.T) {
+	err := Check(FeatureGroup{Feature(999)})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	var fe *FeatureError
+	if !errors.As(err, &fe) {
+		t.Fatalf("expected FeatureError, got %T", err)
+	}
+	if fe.Feature != "Feature(999)" {
+		t.Fatalf("FeatureError.Feature = %q", fe.Feature)
+	}
+	if fe.Reason != "unknown feature" {
+		t.Fatalf("FeatureError.Reason = %q", fe.Reason)
+	}
 }
