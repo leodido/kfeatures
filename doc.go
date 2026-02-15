@@ -22,7 +22,7 @@
 // FromELF API contract (frozen):
 //   - [FromELF] returns [FeatureGroup] requirement items consumable by [Check]
 //   - output is deterministic (deduplicated, stable order)
-//   - v1 extraction scope is program types and map types
+//   - extraction scope includes program/map types and helper-per-program requirements
 //   - unknown/unsupported ELF kinds fail closed with an error
 //
 // # Quick Check

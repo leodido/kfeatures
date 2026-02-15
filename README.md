@@ -65,7 +65,7 @@ Requirement items consumed by `Check(...)`:
 - `Feature` (stable boolean capability)
 - `FeatureGroup` (reusable preset of requirements)
 - `RequireProgramType(...)`, `RequireMapType(...)`, `RequireProgramHelper(...)` (parameterized workload requirements)
-- `FromELF(path)`: producer of requirement items in the same model (v1: program/map types)
+- `FromELF(path)`: producer of requirement items in the same model (program/map types + helper-per-program requirements)
 
 `FromELF` is parser-only and available cross-platform; runtime probing/checking remains Linux-specific.
 
@@ -87,8 +87,8 @@ Current classification snapshot:
 
 1. Public API is fixed to `FromELF(path string) (FeatureGroup, error)`.
 2. Extraction output must be deterministic: deduplicated and stably ordered.
-3. v1 extraction scope is only program types and map types.
-4. Unknown/unsupported ELF kinds are fail-closed in v1 (return error, do not silently ignore).
+3. Extraction scope includes program types, map types, and helper-per-program requirements from direct helper calls.
+4. Unknown/unsupported ELF kinds are fail-closed (return error, do not silently ignore).
 
 ## Usage
 
