@@ -65,7 +65,7 @@ Requirement items consumed by `Check(...)`:
 - `Feature` (stable boolean capability)
 - `FeatureGroup` (reusable preset of requirements)
 - `RequireProgramType(...)`, `RequireMapType(...)`, `RequireProgramHelper(...)` (parameterized workload requirements)
-- `FromELF(path)` (planned): producer of requirement items in the same model
+- `FromELF(path)`: producer of requirement items in the same model (v1: program/map types)
 
 Feature-addition review checklist:
 
@@ -80,6 +80,13 @@ Current classification snapshot:
 
 - Gated via `Check(...)`: `Feature*` readiness checks plus parameterized program/map/helper requirements.
 - Probe-only via `ProbeWith(WithX...)`: contextual/descriptive signals without stable universal policy (for example `DebugFS`, `SecurityFS`, `InInitPIDNS`, raw mitigation strings, raw active LSM list, kernel version).
+
+`FromELF` contract:
+
+1. Public API is fixed to `FromELF(path string) (FeatureGroup, error)`.
+2. Extraction output must be deterministic: deduplicated and stably ordered.
+3. v1 extraction scope is only program types and map types.
+4. Unknown/unsupported ELF kinds are fail-closed in v1 (return error, do not silently ignore).
 
 ## Usage
 

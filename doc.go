@@ -19,6 +19,12 @@
 //   - keep context-only/descriptive signals probe-only unless a concrete
 //     deterministic gating policy is defined.
 //
+// FromELF API contract (frozen):
+//   - [FromELF] returns [FeatureGroup] requirement items consumable by [Check]
+//   - output is deterministic (deduplicated, stable order)
+//   - v1 extraction scope is program types and map types
+//   - unknown/unsupported ELF kinds fail closed with an error
+//
 // # Quick Check
 //
 // Validate that required kernel features are available:
