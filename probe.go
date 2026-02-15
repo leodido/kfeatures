@@ -62,8 +62,8 @@ func WithKernelConfig() ProbeOption {
 	}
 }
 
-// WithCapabilities probes process capabilities (CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON)
-// and unprivileged BPF access status.
+// WithCapabilities probes process capabilities (CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON),
+// unprivileged BPF access status, and BPF runtime stats status.
 func WithCapabilities() ProbeOption {
 	return func(c *probeConfig) {
 		c.capabilities = true
