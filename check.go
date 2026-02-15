@@ -130,6 +130,8 @@ func (sf *SystemFeatures) Result(f Feature) (ProbeResult, bool) {
 		return sf.InInitUserNS, true
 	case FeatureUnprivilegedBPFDisabled:
 		return sf.UnprivilegedBPFDisabled, true
+	case FeatureBPFStatsEnabled:
+		return sf.BPFStatsEnabled, true
 	default:
 		return ProbeResult{}, false
 	}
@@ -187,6 +189,8 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 		return "process not in initial user namespace; run in host user namespace or adjust container runtime settings"
 	case FeatureUnprivilegedBPFDisabled:
 		return "unprivileged BPF is enabled; set /proc/sys/kernel/unprivileged_bpf_disabled to 1 or 2"
+	case FeatureBPFStatsEnabled:
+		return "BPF runtime stats are disabled; set /proc/sys/kernel/bpf_stats_enabled to 1"
 	}
 
 	// Fallback: use the probe error if available.
@@ -209,6 +213,9 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 	var needNamespaces bool
 	var programTypes []ebpf.ProgramType
 
+	// Phase-B classification: Debugfs, Securityfs, and InInitPIDNS
+	// remain diagnostics-only for now and are intentionally not
+	// represented as Feature gates.
 	for _, f := range reqs {
 		switch f {
 		case FeatureBPFLSM, FeatureIMA:
@@ -235,6 +242,8 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 		case FeatureInitUserNS:
 			needNamespaces = true
 		case FeatureUnprivilegedBPFDisabled:
+			needCapabilities = true
+		case FeatureBPFStatsEnabled:
 			needCapabilities = true
 		}
 	}

@@ -156,6 +156,7 @@ func TestFeature_String(t *testing.T) {
 		{FeatureBPFFS, "bpffs"},
 		{FeatureInitUserNS, "initial user namespace"},
 		{FeatureUnprivilegedBPFDisabled, "unprivileged BPF disabled"},
+		{FeatureBPFStatsEnabled, "BPF stats enabled"},
 		{Feature(999), "Feature(999)"},
 	}
 	for _, tt := range tests {

@@ -308,6 +308,8 @@ const (
 	FeatureInitUserNS
 	// FeatureUnprivilegedBPFDisabled requires unprivileged BPF to be disabled.
 	FeatureUnprivilegedBPFDisabled
+	// FeatureBPFStatsEnabled requires BPF runtime stats collection to be enabled.
+	FeatureBPFStatsEnabled
 )
 
 var featureNames = map[Feature]string{
@@ -330,6 +332,7 @@ var featureNames = map[Feature]string{
 	FeatureBPFFS:                   "bpffs",
 	FeatureInitUserNS:              "initial user namespace",
 	FeatureUnprivilegedBPFDisabled: "unprivileged BPF disabled",
+	FeatureBPFStatsEnabled:         "BPF stats enabled",
 }
 
 func (f Feature) String() string {
