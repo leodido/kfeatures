@@ -4,8 +4,8 @@ package kfeatures
 
 import (
 	"errors"
-	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"unsafe"
 
@@ -95,8 +95,10 @@ func probeJITLimit() int64 {
 		return 0
 	}
 	val := strings.TrimSpace(string(data))
-	var n int64
-	fmt.Sscanf(val, "%d", &n)
+	n, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return 0
+	}
 	return n
 }
 
