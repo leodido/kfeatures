@@ -152,6 +152,9 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 
 	switch f {
 	case FeatureBPFLSM:
+		if sf.BPFLSMEnabled.Error != nil {
+			return "unable to read active LSM list (/sys/kernel/security/lsm); ensure securityfs is mounted and readable"
+		}
 		if kc != nil && !kc.BPFLSM.IsEnabled() {
 			return "CONFIG_BPF_LSM not set; rebuild kernel with CONFIG_BPF_LSM=y"
 		}
@@ -173,6 +176,9 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 	case FeatureTracepoint:
 		return "tracepoint program type not supported; ensure perf events are enabled and use a kernel with tracepoint BPF support"
 	case FeatureIMA:
+		if sf.IMAEnabled.Error != nil {
+			return "unable to read active LSM list (/sys/kernel/security/lsm); ensure securityfs is mounted and readable to verify IMA state"
+		}
 		if kc != nil && !kc.IMA.IsEnabled() {
 			return "CONFIG_IMA not set; rebuild kernel with CONFIG_IMA=y"
 		}
