@@ -1,16 +1,16 @@
-version: 2
+release:
+  prerelease: auto
+  draft: false
+  name_template: "v{{.Version}}"
+
+before:
+  hooks:
+    - go mod tidy
 
 builds:
-  - id: kfeatures
-    main: ./cmd/kfeatures
-    binary: kfeatures
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
-      - arm64
+  - skip: true
 
+# Docs at https://goreleaser.com/customization/changelog
 changelog:
   use: github-native
+  sort: asc
