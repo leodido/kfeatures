@@ -1,0 +1,16 @@
+version: 2
+
+builds:
+  - id: kfeatures
+    main: ./cmd/kfeatures
+    binary: kfeatures
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
+changelog:
+  use: github-native
