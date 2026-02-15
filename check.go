@@ -8,6 +8,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/features"
+	"golang.org/x/sys/unix"
 )
 
 // Check validates the specified requirements and returns a *[FeatureError]
@@ -50,13 +51,9 @@ func Check(required ...Requirement) error {
 		if err == nil {
 			continue
 		}
-		reason := fmt.Sprintf("failed to probe program type %s", pt)
-		if errors.Is(err, ebpf.ErrNotSupported) {
-			reason = fmt.Sprintf("program type %s not supported by running kernel", pt)
-		}
 		return &FeatureError{
 			Feature: fmt.Sprintf("program type %s", pt),
-			Reason:  reason,
+			Reason:  reasonForProgramTypeError(pt, err),
 			Err:     err,
 		}
 	}
@@ -66,13 +63,9 @@ func Check(required ...Requirement) error {
 		if err == nil {
 			continue
 		}
-		reason := fmt.Sprintf("failed to probe map type %s", mt)
-		if errors.Is(err, ebpf.ErrNotSupported) {
-			reason = fmt.Sprintf("map type %s not supported by running kernel", mt)
-		}
 		return &FeatureError{
 			Feature: fmt.Sprintf("map type %s", mt),
-			Reason:  reason,
+			Reason:  reasonForMapTypeError(mt, err),
 			Err:     err,
 		}
 	}
@@ -82,13 +75,9 @@ func Check(required ...Requirement) error {
 		if err == nil {
 			continue
 		}
-		reason := fmt.Sprintf("failed to probe helper %s for program type %s", req.Helper, req.ProgramType)
-		if errors.Is(err, ebpf.ErrNotSupported) {
-			reason = fmt.Sprintf("helper %s not supported for program type %s", req.Helper, req.ProgramType)
-		}
 		return &FeatureError{
 			Feature: fmt.Sprintf("helper %s for program type %s", req.Helper, req.ProgramType),
-			Reason:  reason,
+			Reason:  reasonForProgramHelperError(req, err),
 			Err:     err,
 		}
 	}
@@ -303,4 +292,37 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 		opts = append(opts, WithNamespaces())
 	}
 	return opts
+}
+
+func reasonForProgramTypeError(pt ebpf.ProgramType, err error) string {
+	switch {
+	case errors.Is(err, ebpf.ErrNotSupported):
+		return fmt.Sprintf("program type %s is unavailable on this kernel; use a kernel/workload combination that supports it", pt)
+	case errors.Is(err, unix.EPERM), errors.Is(err, unix.EACCES):
+		return fmt.Sprintf("cannot probe program type %s due to insufficient privileges; run as root or add CAP_BPF/CAP_SYS_ADMIN", pt)
+	default:
+		return fmt.Sprintf("unable to validate program type %s support; verify kernel BPF support and required privileges (CAP_BPF/CAP_SYS_ADMIN)", pt)
+	}
+}
+
+func reasonForMapTypeError(mt ebpf.MapType, err error) string {
+	switch {
+	case errors.Is(err, ebpf.ErrNotSupported):
+		return fmt.Sprintf("map type %s is unavailable on this kernel; use a supported map type or a newer kernel", mt)
+	case errors.Is(err, unix.EPERM), errors.Is(err, unix.EACCES):
+		return fmt.Sprintf("cannot probe map type %s due to insufficient privileges; run as root or add CAP_BPF/CAP_SYS_ADMIN", mt)
+	default:
+		return fmt.Sprintf("unable to validate map type %s support; verify kernel BPF support and required privileges (CAP_BPF/CAP_SYS_ADMIN)", mt)
+	}
+}
+
+func reasonForProgramHelperError(req ProgramHelperRequirement, err error) string {
+	switch {
+	case errors.Is(err, ebpf.ErrNotSupported):
+		return fmt.Sprintf("helper %s is unavailable for program type %s; choose a compatible helper/program combination or newer kernel", req.Helper, req.ProgramType)
+	case errors.Is(err, unix.EPERM), errors.Is(err, unix.EACCES):
+		return fmt.Sprintf("cannot probe helper %s for program type %s due to insufficient privileges; run as root or add CAP_BPF/CAP_SYS_ADMIN", req.Helper, req.ProgramType)
+	default:
+		return fmt.Sprintf("unable to validate helper %s for program type %s; verify kernel support and required privileges (CAP_BPF/CAP_SYS_ADMIN)", req.Helper, req.ProgramType)
+	}
 }
