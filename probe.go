@@ -233,10 +233,10 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 
 	// Probe filesystem mounts
 	if cfg.filesystems {
-		sf.Tracefs = probeFilesystemMount(tracefsPath, tracefsFallbackPath)
-		sf.Debugfs = probeFilesystemMount(debugfsPath)
-		sf.Securityfs = probeFilesystemMount(securityfsPath)
-		sf.BPFfs = probeFilesystemMount(bpffsPath)
+		sf.TraceFS = probeFilesystemMount(tracefsPath, tracefsFallbackPath)
+		sf.DebugFS = probeFilesystemMount(debugfsPath)
+		sf.SecurityFS = probeFilesystemMount(securityfsPath)
+		sf.BPFFS = probeFilesystemMount(bpffsPath)
 	}
 
 	// Probe CPU mitigations and JIT-always-on
