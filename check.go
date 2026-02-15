@@ -122,9 +122,9 @@ func (sf *SystemFeatures) Result(f Feature) (ProbeResult, bool) {
 		return sf.PerfEventOpen, true
 	case FeatureSleepableBPF:
 		return ProbeResult{Supported: sf.PreemptMode.SupportsSleepable()}, true
-	case FeatureTracefs:
+	case FeatureTraceFS:
 		return sf.Tracefs, true
-	case FeatureBPFfs:
+	case FeatureBPFFS:
 		return sf.BPFfs, true
 	case FeatureInitUserNS:
 		return sf.InInitUserNS, true
@@ -179,9 +179,9 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 			return fmt.Sprintf("kernel preemption model is %s; sleepable BPF (BPF_F_SLEEPABLE) requires CONFIG_PREEMPT or CONFIG_PREEMPT_DYNAMIC", kc.Preempt)
 		}
 		return "cannot determine preemption model; kernel config not available"
-	case FeatureTracefs:
+	case FeatureTraceFS:
 		return "tracefs not mounted; mount tracefs at /sys/kernel/tracing (or /sys/kernel/debug/tracing on older kernels)"
-	case FeatureBPFfs:
+	case FeatureBPFFS:
 		return "bpffs not mounted; mount bpffs at /sys/fs/bpf"
 	case FeatureInitUserNS:
 		return "process not in initial user namespace; run in host user namespace or adjust container runtime settings"
@@ -230,7 +230,7 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 			needSyscalls = true
 		case FeatureSleepableBPF:
 			needKernelConfig = true
-		case FeatureTracefs, FeatureBPFfs:
+		case FeatureTraceFS, FeatureBPFFS:
 			needFilesystems = true
 		case FeatureInitUserNS:
 			needNamespaces = true

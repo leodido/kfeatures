@@ -101,8 +101,8 @@ var featureFromName = map[string]kfeatures.Feature{
 	"bpf-syscall":               kfeatures.FeatureBPFSyscall,
 	"perf-event-open":           kfeatures.FeaturePerfEventOpen,
 	"sleepable-bpf":             kfeatures.FeatureSleepableBPF,
-	"tracefs":                   kfeatures.FeatureTracefs,
-	"bpffs":                     kfeatures.FeatureBPFfs,
+	"tracefs":                   kfeatures.FeatureTraceFS,
+	"bpffs":                     kfeatures.FeatureBPFFS,
 	"init-user-ns":              kfeatures.FeatureInitUserNS,
 	"unprivileged-bpf-disabled": kfeatures.FeatureUnprivilegedBPFDisabled,
 }
