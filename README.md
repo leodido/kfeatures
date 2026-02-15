@@ -67,6 +67,8 @@ Requirement items consumed by `Check(...)`:
 - `RequireProgramType(...)`, `RequireMapType(...)`, `RequireProgramHelper(...)` (parameterized workload requirements)
 - `FromELF(path)`: producer of requirement items in the same model (v1: program/map types)
 
+`FromELF` is parser-only and available cross-platform; runtime probing/checking remains Linux-specific.
+
 Feature-addition review checklist:
 
 1. Is the signal a deterministic run/block requirement with actionable remediation text?
