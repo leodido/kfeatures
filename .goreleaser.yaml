@@ -8,7 +8,16 @@ before:
     - go mod tidy
 
 builds:
-  - skip: true
+  - id: kfeatures
+    main: ./cmd/kfeatures
+    binary: kfeatures
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
 
 # Docs at https://goreleaser.com/customization/changelog
 changelog:
