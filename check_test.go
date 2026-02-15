@@ -88,6 +88,16 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 		}
 	})
 
+	t.Run("BPF LSM probe error has deterministic remediation", func(t *testing.T) {
+		sf := &SystemFeatures{
+			BPFLSMEnabled: ProbeResult{Error: errors.New("permission denied")},
+		}
+		got := sf.Diagnose(FeatureBPFLSM)
+		if got != "unable to read active LSM list (/sys/kernel/security/lsm); ensure securityfs is mounted and readable" {
+			t.Errorf("Diagnose(FeatureBPFLSM) = %q", got)
+		}
+	})
+
 	t.Run("BPF LSM compiled but not in boot params", func(t *testing.T) {
 		sf := &SystemFeatures{
 			LSMProgramType: ProbeResult{Supported: true},
@@ -139,6 +149,16 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 		}
 		got := sf.Diagnose(FeatureIMA)
 		if got != "CONFIG_IMA not set; rebuild kernel with CONFIG_IMA=y" {
+			t.Errorf("Diagnose(FeatureIMA) = %q", got)
+		}
+	})
+
+	t.Run("IMA probe error has deterministic remediation", func(t *testing.T) {
+		sf := &SystemFeatures{
+			IMAEnabled: ProbeResult{Error: errors.New("permission denied")},
+		}
+		got := sf.Diagnose(FeatureIMA)
+		if got != "unable to read active LSM list (/sys/kernel/security/lsm); ensure securityfs is mounted and readable to verify IMA state" {
 			t.Errorf("Diagnose(FeatureIMA) = %q", got)
 		}
 	})
