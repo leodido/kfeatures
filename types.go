@@ -300,10 +300,10 @@ const (
 	FeaturePerfEventOpen
 	// FeatureSleepableBPF requires a preemptible kernel for BPF_F_SLEEPABLE programs.
 	FeatureSleepableBPF
-	// FeatureTracefs requires tracefs to be mounted.
-	FeatureTracefs
-	// FeatureBPFfs requires bpffs to be mounted.
-	FeatureBPFfs
+	// FeatureTraceFS requires tracefs to be mounted.
+	FeatureTraceFS
+	// FeatureBPFFS requires bpffs to be mounted.
+	FeatureBPFFS
 	// FeatureInitUserNS requires running in the initial user namespace.
 	FeatureInitUserNS
 	// FeatureUnprivilegedBPFDisabled requires unprivileged BPF to be disabled.
@@ -326,8 +326,8 @@ var featureNames = map[Feature]string{
 	FeatureBPFSyscall:              "bpf() syscall",
 	FeaturePerfEventOpen:           "perf_event_open() syscall",
 	FeatureSleepableBPF:            "sleepable BPF",
-	FeatureTracefs:                 "tracefs",
-	FeatureBPFfs:                   "bpffs",
+	FeatureTraceFS:                 "tracefs",
+	FeatureBPFFS:                   "bpffs",
 	FeatureInitUserNS:              "initial user namespace",
 	FeatureUnprivilegedBPFDisabled: "unprivileged BPF disabled",
 }

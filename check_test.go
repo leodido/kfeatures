@@ -55,8 +55,8 @@ func TestSystemFeatures_Result(t *testing.T) {
 		{FeatureBPFSyscall, true, true},
 		{FeaturePerfEventOpen, true, true},
 		{FeatureSleepableBPF, true, true},
-		{FeatureTracefs, true, true},
-		{FeatureBPFfs, true, false},
+		{FeatureTraceFS, true, true},
+		{FeatureBPFFS, true, false},
 		{FeatureInitUserNS, true, false},
 		{FeatureUnprivilegedBPFDisabled, true, true},
 		{Feature(999), false, false},
@@ -181,11 +181,11 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 
 	t.Run("filesystem diagnostics", func(t *testing.T) {
 		sf := &SystemFeatures{}
-		if got := sf.Diagnose(FeatureTracefs); got != "tracefs not mounted; mount tracefs at /sys/kernel/tracing (or /sys/kernel/debug/tracing on older kernels)" {
-			t.Errorf("Diagnose(FeatureTracefs) = %q", got)
+		if got := sf.Diagnose(FeatureTraceFS); got != "tracefs not mounted; mount tracefs at /sys/kernel/tracing (or /sys/kernel/debug/tracing on older kernels)" {
+			t.Errorf("Diagnose(FeatureTraceFS) = %q", got)
 		}
-		if got := sf.Diagnose(FeatureBPFfs); got != "bpffs not mounted; mount bpffs at /sys/fs/bpf" {
-			t.Errorf("Diagnose(FeatureBPFfs) = %q", got)
+		if got := sf.Diagnose(FeatureBPFFS); got != "bpffs not mounted; mount bpffs at /sys/fs/bpf" {
+			t.Errorf("Diagnose(FeatureBPFFS) = %q", got)
 		}
 	})
 
@@ -284,7 +284,7 @@ func TestProbeOptionsFor(t *testing.T) {
 	})
 
 	t.Run("filesystem features", func(t *testing.T) {
-		opts := probeOptionsFor([]Feature{FeatureTracefs, FeatureBPFfs})
+		opts := probeOptionsFor([]Feature{FeatureTraceFS, FeatureBPFFS})
 		cfg := &probeConfig{}
 		for _, opt := range opts {
 			opt(cfg)
