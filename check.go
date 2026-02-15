@@ -166,6 +166,12 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 		if kc != nil && !kc.KprobeMulti.IsEnabled() {
 			return "CONFIG_FPROBE not set; requires kernel 5.18+ with CONFIG_FPROBE=y"
 		}
+	case FeatureKprobe:
+		return "kprobe program type not supported; use a kernel with BPF kprobe support or switch to a supported attach type"
+	case FeatureFentry:
+		return "fentry/fexit program type not supported; use a kernel with BPF trampoline support (and BTF) or switch attach strategy"
+	case FeatureTracepoint:
+		return "tracepoint program type not supported; ensure perf events are enabled and use a kernel with tracepoint BPF support"
 	case FeatureIMA:
 		if kc != nil && !kc.IMA.IsEnabled() {
 			return "CONFIG_IMA not set; rebuild kernel with CONFIG_IMA=y"
