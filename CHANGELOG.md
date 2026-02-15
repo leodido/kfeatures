@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] — 2025-07-17
+## [0.1.0] — 2026-02-15
 
-Initial release.
+First public release.
 
 ### Added
 
@@ -28,10 +28,14 @@ Initial release.
 - High-level `Check()` API with `FeatureError` for actionable diagnostics
 - `Diagnose()` for human-readable remediation steps
 - `Feature` enum for type-safe feature references
+- Unified `Requirement` model for `Check(...)` with `FeatureGroup` and parameterized requirements (`RequireProgramType`, `RequireMapType`, `RequireProgramHelper`)
+- `FromELF(path)` requirement extraction (program types, map types, helper-per-program requirements), with deterministic ordering and fail-closed handling for unknown kinds
 - Human-readable `String()` output for `SystemFeatures`
 - CLI tool (`cmd/kfeatures`) with `probe`, `check`, `config`, and `version` subcommands
 - JSON output support in CLI (`--json`)
 - GitHub Actions CI workflow with tests, vet, and golangci-lint
+- Release automation with GoReleaser and GitHub generated release notes (`.github/release.yml`)
+- SAST workflow (CodeQL)
 
 [Unreleased]: https://github.com/leodido/kfeatures/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/leodido/kfeatures/releases/tag/v0.1.0
