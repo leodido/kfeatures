@@ -47,10 +47,10 @@ func (sf *SystemFeatures) String() string {
 	b.WriteString("\n")
 
 	b.WriteString("Filesystems:\n")
-	writeResult(&b, "  tracefs", sf.Tracefs)
-	writeResult(&b, "  debugfs", sf.Debugfs)
-	writeResult(&b, "  securityfs", sf.Securityfs)
-	writeResult(&b, "  bpffs", sf.BPFfs)
+	writeResult(&b, "  tracefs", sf.TraceFS)
+	writeResult(&b, "  debugfs", sf.DebugFS)
+	writeResult(&b, "  securityfs", sf.SecurityFS)
+	writeResult(&b, "  bpffs", sf.BPFFS)
 	b.WriteString("\n")
 
 	b.WriteString("JIT:\n")
