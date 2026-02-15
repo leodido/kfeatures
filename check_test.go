@@ -32,6 +32,7 @@ func TestSystemFeatures_Result(t *testing.T) {
 		Tracefs:                 ProbeResult{Supported: true},
 		BPFfs:                   ProbeResult{Supported: false},
 		InInitUserNS:            ProbeResult{Supported: false},
+		BPFStatsEnabled:         ProbeResult{Supported: false},
 		PreemptMode:             PreemptDynamic,
 	}
 
@@ -59,6 +60,7 @@ func TestSystemFeatures_Result(t *testing.T) {
 		{FeatureBPFFS, true, false},
 		{FeatureInitUserNS, true, false},
 		{FeatureUnprivilegedBPFDisabled, true, true},
+		{FeatureBPFStatsEnabled, true, false},
 		{Feature(999), false, false},
 	}
 
@@ -203,6 +205,13 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 		}
 	})
 
+	t.Run("bpf stats diagnostics", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		if got := sf.Diagnose(FeatureBPFStatsEnabled); got != "BPF runtime stats are disabled; set /proc/sys/kernel/bpf_stats_enabled to 1" {
+			t.Errorf("Diagnose(FeatureBPFStatsEnabled) = %q", got)
+		}
+	})
+
 	t.Run("no kernel config fallback", func(t *testing.T) {
 		sf := &SystemFeatures{}
 		got := sf.Diagnose(FeatureBPFLSM)
@@ -313,6 +322,17 @@ func TestProbeOptionsFor(t *testing.T) {
 		}
 		if !cfg.capabilities {
 			t.Error("expected capabilities=true for unprivileged bpf feature")
+		}
+	})
+
+	t.Run("bpf stats enabled needs capabilities", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureBPFStatsEnabled})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.capabilities {
+			t.Error("expected capabilities=true for bpf stats feature")
 		}
 	})
 
