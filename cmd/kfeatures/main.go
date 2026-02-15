@@ -86,21 +86,21 @@ func (o *CheckOptions) Attach(c *cobra.Command) error {
 
 // featureFromName maps CLI feature names to Feature constants.
 var featureFromName = map[string]kfeatures.Feature{
-	"bpf-lsm":       kfeatures.FeatureBPFLSM,
-	"btf":           kfeatures.FeatureBTF,
-	"ima":           kfeatures.FeatureIMA,
-	"kprobe":        kfeatures.FeatureKprobe,
-	"kprobe-multi":  kfeatures.FeatureKprobeMulti,
-	"fentry":        kfeatures.FeatureFentry,
-	"tracepoint":    kfeatures.FeatureTracepoint,
-	"cap-bpf":       kfeatures.FeatureCapBPF,
-	"cap-sys-admin": kfeatures.FeatureCapSysAdmin,
-	"cap-perfmon":   kfeatures.FeatureCapPerfmon,
-	"jit":              kfeatures.FeatureJITEnabled,
-	"jit-hardened":     kfeatures.FeatureJITHardened,
-	"bpf-syscall":      kfeatures.FeatureBPFSyscall,
-	"perf-event-open":  kfeatures.FeaturePerfEventOpen,
-	"sleepable-bpf":    kfeatures.FeatureSleepableBPF,
+	"bpf-lsm":         kfeatures.FeatureBPFLSM,
+	"btf":             kfeatures.FeatureBTF,
+	"ima":             kfeatures.FeatureIMA,
+	"kprobe":          kfeatures.FeatureKprobe,
+	"kprobe-multi":    kfeatures.FeatureKprobeMulti,
+	"fentry":          kfeatures.FeatureFentry,
+	"tracepoint":      kfeatures.FeatureTracepoint,
+	"cap-bpf":         kfeatures.FeatureCapBPF,
+	"cap-sys-admin":   kfeatures.FeatureCapSysAdmin,
+	"cap-perfmon":     kfeatures.FeatureCapPerfmon,
+	"jit":             kfeatures.FeatureJITEnabled,
+	"jit-hardened":    kfeatures.FeatureJITHardened,
+	"bpf-syscall":     kfeatures.FeatureBPFSyscall,
+	"perf-event-open": kfeatures.FeaturePerfEventOpen,
+	"sleepable-bpf":   kfeatures.FeatureSleepableBPF,
 }
 
 func checkCmd() *cobra.Command {
@@ -140,7 +140,12 @@ Available features:
 				return fmt.Errorf("no features specified")
 			}
 
-			err := kfeatures.Check(features...)
+			requirements := make([]kfeatures.Requirement, 0, len(features))
+			for _, f := range features {
+				requirements = append(requirements, f)
+			}
+
+			err := kfeatures.Check(requirements...)
 			if err != nil {
 				var fe *kfeatures.FeatureError
 				if errors.As(err, &fe) {

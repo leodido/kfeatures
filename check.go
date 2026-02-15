@@ -3,22 +3,27 @@
 package kfeatures
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/features"
 )
 
-// Check probes the specified kernel features and returns a *[FeatureError]
+// Check validates the specified requirements and returns a *[FeatureError]
 // for the first unsatisfied requirement, or nil if all are met.
 // Kernel config is always probed to provide actionable diagnostics.
-func Check(required ...Feature) error {
-	opts := probeOptionsFor(required)
+func Check(required ...Requirement) error {
+	rs := normalizeRequirements(required)
+
+	opts := probeOptionsFor(rs.features)
 	opts = append(opts, WithKernelConfig())
 	sf, err := ProbeWith(opts...)
 	if err != nil {
 		return fmt.Errorf("probe features: %w", err)
 	}
-	for _, f := range required {
+
+	for _, f := range rs.features {
 		result, known := sf.Result(f)
 		if !known {
 			return &FeatureError{Feature: f.String(), Reason: "unknown feature"}
@@ -31,6 +36,55 @@ func Check(required ...Feature) error {
 			}
 		}
 	}
+
+	for _, pt := range rs.programTypes {
+		err := features.HaveProgramType(pt)
+		if err == nil {
+			continue
+		}
+		reason := fmt.Sprintf("failed to probe program type %s", pt)
+		if errors.Is(err, ebpf.ErrNotSupported) {
+			reason = fmt.Sprintf("program type %s not supported by running kernel", pt)
+		}
+		return &FeatureError{
+			Feature: fmt.Sprintf("program type %s", pt),
+			Reason:  reason,
+			Err:     err,
+		}
+	}
+
+	for _, mt := range rs.mapTypes {
+		err := features.HaveMapType(mt)
+		if err == nil {
+			continue
+		}
+		reason := fmt.Sprintf("failed to probe map type %s", mt)
+		if errors.Is(err, ebpf.ErrNotSupported) {
+			reason = fmt.Sprintf("map type %s not supported by running kernel", mt)
+		}
+		return &FeatureError{
+			Feature: fmt.Sprintf("map type %s", mt),
+			Reason:  reason,
+			Err:     err,
+		}
+	}
+
+	for _, req := range rs.programHelpers {
+		err := features.HaveProgramHelper(req.ProgramType, req.Helper)
+		if err == nil {
+			continue
+		}
+		reason := fmt.Sprintf("failed to probe helper %s for program type %s", req.Helper, req.ProgramType)
+		if errors.Is(err, ebpf.ErrNotSupported) {
+			reason = fmt.Sprintf("helper %s not supported for program type %s", req.Helper, req.ProgramType)
+		}
+		return &FeatureError{
+			Feature: fmt.Sprintf("helper %s for program type %s", req.Helper, req.ProgramType),
+			Reason:  reason,
+			Err:     err,
+		}
+	}
+
 	return nil
 }
 
