@@ -7,6 +7,18 @@
 // capability checking, and composite feature validation with operator-facing
 // diagnostics.
 //
+// # API Model
+//
+// kfeatures intentionally exposes two API families:
+//   - [Check] for pass/fail readiness validation using [Requirement] items
+//   - [Probe]/[ProbeWith] for diagnostics data collection using WithX options
+//
+// Keep these families separate:
+//   - model stable boolean gates as [Feature]
+//   - model parameterized gates as [Requirement] item types
+//   - keep context-only/descriptive signals probe-only unless a concrete
+//     deterministic gating policy is defined.
+//
 // # Quick Check
 //
 // Validate that required kernel features are available:
