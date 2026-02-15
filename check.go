@@ -122,6 +122,14 @@ func (sf *SystemFeatures) Result(f Feature) (ProbeResult, bool) {
 		return sf.PerfEventOpen, true
 	case FeatureSleepableBPF:
 		return ProbeResult{Supported: sf.PreemptMode.SupportsSleepable()}, true
+	case FeatureTraceFS:
+		return sf.Tracefs, true
+	case FeatureBPFFS:
+		return sf.BPFfs, true
+	case FeatureInitUserNS:
+		return sf.InInitUserNS, true
+	case FeatureUnprivilegedBPFDisabled:
+		return sf.UnprivilegedBPFDisabled, true
 	default:
 		return ProbeResult{}, false
 	}
@@ -171,6 +179,14 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 			return fmt.Sprintf("kernel preemption model is %s; sleepable BPF (BPF_F_SLEEPABLE) requires CONFIG_PREEMPT or CONFIG_PREEMPT_DYNAMIC", kc.Preempt)
 		}
 		return "cannot determine preemption model; kernel config not available"
+	case FeatureTraceFS:
+		return "tracefs not mounted; mount tracefs at /sys/kernel/tracing (or /sys/kernel/debug/tracing on older kernels)"
+	case FeatureBPFFS:
+		return "bpffs not mounted; mount bpffs at /sys/fs/bpf"
+	case FeatureInitUserNS:
+		return "process not in initial user namespace; run in host user namespace or adjust container runtime settings"
+	case FeatureUnprivilegedBPFDisabled:
+		return "unprivileged BPF is enabled; set /proc/sys/kernel/unprivileged_bpf_disabled to 1 or 2"
 	}
 
 	// Fallback: use the probe error if available.
@@ -189,6 +205,8 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 	var needCapabilities bool
 	var needJIT bool
 	var needSyscalls bool
+	var needFilesystems bool
+	var needNamespaces bool
 	var programTypes []ebpf.ProgramType
 
 	for _, f := range reqs {
@@ -212,6 +230,12 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 			needSyscalls = true
 		case FeatureSleepableBPF:
 			needKernelConfig = true
+		case FeatureTraceFS, FeatureBPFFS:
+			needFilesystems = true
+		case FeatureInitUserNS:
+			needNamespaces = true
+		case FeatureUnprivilegedBPFDisabled:
+			needCapabilities = true
 		}
 	}
 
@@ -233,6 +257,12 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 	}
 	if needJIT {
 		opts = append(opts, WithJIT())
+	}
+	if needFilesystems {
+		opts = append(opts, WithFilesystems())
+	}
+	if needNamespaces {
+		opts = append(opts, WithNamespaces())
 	}
 	return opts
 }
