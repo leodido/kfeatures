@@ -8,14 +8,33 @@ import (
 	"testing"
 
 	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/asm"
 )
 
 func TestRequirementsFromCollectionSpec_DedupAndStableOrder(t *testing.T) {
 	spec := &ebpf.CollectionSpec{
 		Programs: map[string]*ebpf.ProgramSpec{
-			"p2": {Type: ebpf.XDP},
-			"p1": {Type: ebpf.Kprobe},
-			"p3": {Type: ebpf.Kprobe}, // duplicate
+			"p2": {
+				Type: ebpf.XDP,
+				Instructions: asm.Instructions{
+					asm.FnMapLookupElem.Call(),
+					asm.FnGetPrandomU32.Call(),
+				},
+			},
+			"p1": {
+				Type: ebpf.Kprobe,
+				Instructions: asm.Instructions{
+					asm.FnGetCurrentPidTgid.Call(),
+					asm.FnMapLookupElem.Call(),
+				},
+			},
+			"p3": {
+				Type: ebpf.Kprobe, // duplicate program type
+				Instructions: asm.Instructions{
+					asm.FnMapLookupElem.Call(),
+					asm.FnGetCurrentPidTgid.Call(), // duplicate helper for this program type
+				},
+			},
 		},
 		Maps: map[string]*ebpf.MapSpec{
 			"m2": {Type: ebpf.Array},
@@ -34,6 +53,10 @@ func TestRequirementsFromCollectionSpec_DedupAndStableOrder(t *testing.T) {
 		RequireProgramType(ebpf.XDP),
 		RequireMapType(ebpf.Hash),
 		RequireMapType(ebpf.Array),
+		RequireProgramHelper(ebpf.Kprobe, asm.FnMapLookupElem),
+		RequireProgramHelper(ebpf.Kprobe, asm.FnGetCurrentPidTgid),
+		RequireProgramHelper(ebpf.XDP, asm.FnMapLookupElem),
+		RequireProgramHelper(ebpf.XDP, asm.FnGetPrandomU32),
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("requirementsFromCollectionSpec() = %#v, want %#v", got, want)
@@ -82,6 +105,46 @@ func TestRequirementsFromCollectionSpec_FailClosedUnknownKinds(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		if !strings.Contains(err.Error(), `program "bad-prog": unknown program type`) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("unsupported helper", func(t *testing.T) {
+		spec := &ebpf.CollectionSpec{
+			Programs: map[string]*ebpf.ProgramSpec{
+				"bad-helper": {
+					Type: ebpf.Kprobe,
+					Instructions: asm.Instructions{
+						asm.FnUnspec.Call(),
+					},
+				},
+			},
+		}
+		_, err := requirementsFromCollectionSpec(spec)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), `program "bad-helper": unsupported/unspecified helper`) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("unknown helper", func(t *testing.T) {
+		spec := &ebpf.CollectionSpec{
+			Programs: map[string]*ebpf.ProgramSpec{
+				"bad-helper": {
+					Type: ebpf.Kprobe,
+					Instructions: asm.Instructions{
+						asm.BuiltinFunc(999999).Call(),
+					},
+				},
+			},
+		}
+		_, err := requirementsFromCollectionSpec(spec)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if !strings.Contains(err.Error(), `program "bad-helper": unknown helper`) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	})
