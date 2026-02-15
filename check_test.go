@@ -120,6 +120,19 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 		}
 	})
 
+	t.Run("program-type diagnostics", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		if got := sf.Diagnose(FeatureKprobe); got != "kprobe program type not supported; use a kernel with BPF kprobe support or switch to a supported attach type" {
+			t.Errorf("Diagnose(FeatureKprobe) = %q", got)
+		}
+		if got := sf.Diagnose(FeatureFentry); got != "fentry/fexit program type not supported; use a kernel with BPF trampoline support (and BTF) or switch attach strategy" {
+			t.Errorf("Diagnose(FeatureFentry) = %q", got)
+		}
+		if got := sf.Diagnose(FeatureTracepoint); got != "tracepoint program type not supported; ensure perf events are enabled and use a kernel with tracepoint BPF support" {
+			t.Errorf("Diagnose(FeatureTracepoint) = %q", got)
+		}
+	})
+
 	t.Run("IMA not in config", func(t *testing.T) {
 		sf := &SystemFeatures{
 			KernelConfig: NewKernelConfig(map[string]ConfigValue{}),
