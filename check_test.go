@@ -9,6 +9,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
+	"golang.org/x/sys/unix"
 )
 
 func TestSystemFeatures_Result(t *testing.T) {
@@ -423,6 +424,53 @@ func TestNormalizeRequirements(t *testing.T) {
 	}) {
 		t.Fatalf("programHelpers = %#v", rs.programHelpers)
 	}
+}
+
+func TestParameterizedRequirementReasonHelpers(t *testing.T) {
+	t.Run("program type reason classification", func(t *testing.T) {
+		pt := ebpf.XDP
+
+		if got := reasonForProgramTypeError(pt, ebpf.ErrNotSupported); got != "program type XDP is unavailable on this kernel; use a kernel/workload combination that supports it" {
+			t.Fatalf("reasonForProgramTypeError(not-supported) = %q", got)
+		}
+		if got := reasonForProgramTypeError(pt, unix.EPERM); got != "cannot probe program type XDP due to insufficient privileges; run as root or add CAP_BPF/CAP_SYS_ADMIN" {
+			t.Fatalf("reasonForProgramTypeError(EPERM) = %q", got)
+		}
+		if got := reasonForProgramTypeError(pt, errors.New("boom")); got != "unable to validate program type XDP support; verify kernel BPF support and required privileges (CAP_BPF/CAP_SYS_ADMIN)" {
+			t.Fatalf("reasonForProgramTypeError(default) = %q", got)
+		}
+	})
+
+	t.Run("map type reason classification", func(t *testing.T) {
+		mt := ebpf.Hash
+
+		if got := reasonForMapTypeError(mt, ebpf.ErrNotSupported); got != "map type Hash is unavailable on this kernel; use a supported map type or a newer kernel" {
+			t.Fatalf("reasonForMapTypeError(not-supported) = %q", got)
+		}
+		if got := reasonForMapTypeError(mt, unix.EACCES); got != "cannot probe map type Hash due to insufficient privileges; run as root or add CAP_BPF/CAP_SYS_ADMIN" {
+			t.Fatalf("reasonForMapTypeError(EACCES) = %q", got)
+		}
+		if got := reasonForMapTypeError(mt, errors.New("boom")); got != "unable to validate map type Hash support; verify kernel BPF support and required privileges (CAP_BPF/CAP_SYS_ADMIN)" {
+			t.Fatalf("reasonForMapTypeError(default) = %q", got)
+		}
+	})
+
+	t.Run("program helper reason classification", func(t *testing.T) {
+		req := ProgramHelperRequirement{
+			ProgramType: ebpf.XDP,
+			Helper:      asm.FnMapLookupElem,
+		}
+
+		if got := reasonForProgramHelperError(req, ebpf.ErrNotSupported); got != "helper FnMapLookupElem is unavailable for program type XDP; choose a compatible helper/program combination or newer kernel" {
+			t.Fatalf("reasonForProgramHelperError(not-supported) = %q", got)
+		}
+		if got := reasonForProgramHelperError(req, unix.EPERM); got != "cannot probe helper FnMapLookupElem for program type XDP due to insufficient privileges; run as root or add CAP_BPF/CAP_SYS_ADMIN" {
+			t.Fatalf("reasonForProgramHelperError(EPERM) = %q", got)
+		}
+		if got := reasonForProgramHelperError(req, errors.New("boom")); got != "unable to validate helper FnMapLookupElem for program type XDP; verify kernel support and required privileges (CAP_BPF/CAP_SYS_ADMIN)" {
+			t.Fatalf("reasonForProgramHelperError(default) = %q", got)
+		}
+	})
 }
 
 func TestCheck_WithFeatureGroup(t *testing.T) {
