@@ -13,22 +13,26 @@ import (
 
 func TestSystemFeatures_Result(t *testing.T) {
 	sf := &SystemFeatures{
-		LSMProgramType: ProbeResult{Supported: true},
-		BPFLSMEnabled:  ProbeResult{Supported: true},
-		BTF:            ProbeResult{Supported: true},
-		IMAEnabled:     ProbeResult{Supported: false},
-		Kprobe:         ProbeResult{Supported: true},
-		KprobeMulti:    ProbeResult{Supported: true},
-		Fentry:         ProbeResult{Supported: true},
-		Tracepoint:     ProbeResult{Supported: true},
-		HasCapBPF:      ProbeResult{Supported: true},
-		HasCapSysAdmin: ProbeResult{Supported: true},
-		HasCapPerfmon:  ProbeResult{Supported: false},
-		JITEnabled:     ProbeResult{Supported: true},
-		JITHardened:    ProbeResult{Supported: false},
-		BPFSyscall:     ProbeResult{Supported: true},
-		PerfEventOpen:  ProbeResult{Supported: true},
-		PreemptMode:    PreemptDynamic,
+		LSMProgramType:          ProbeResult{Supported: true},
+		BPFLSMEnabled:           ProbeResult{Supported: true},
+		BTF:                     ProbeResult{Supported: true},
+		IMAEnabled:              ProbeResult{Supported: false},
+		Kprobe:                  ProbeResult{Supported: true},
+		KprobeMulti:             ProbeResult{Supported: true},
+		Fentry:                  ProbeResult{Supported: true},
+		Tracepoint:              ProbeResult{Supported: true},
+		HasCapBPF:               ProbeResult{Supported: true},
+		HasCapSysAdmin:          ProbeResult{Supported: true},
+		HasCapPerfmon:           ProbeResult{Supported: false},
+		UnprivilegedBPFDisabled: ProbeResult{Supported: true},
+		JITEnabled:              ProbeResult{Supported: true},
+		JITHardened:             ProbeResult{Supported: false},
+		BPFSyscall:              ProbeResult{Supported: true},
+		PerfEventOpen:           ProbeResult{Supported: true},
+		Tracefs:                 ProbeResult{Supported: true},
+		BPFfs:                   ProbeResult{Supported: false},
+		InInitUserNS:            ProbeResult{Supported: false},
+		PreemptMode:             PreemptDynamic,
 	}
 
 	tests := []struct {
@@ -51,6 +55,10 @@ func TestSystemFeatures_Result(t *testing.T) {
 		{FeatureBPFSyscall, true, true},
 		{FeaturePerfEventOpen, true, true},
 		{FeatureSleepableBPF, true, true},
+		{FeatureTracefs, true, true},
+		{FeatureBPFfs, true, false},
+		{FeatureInitUserNS, true, false},
+		{FeatureUnprivilegedBPFDisabled, true, true},
 		{Feature(999), false, false},
 	}
 
@@ -171,6 +179,30 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 		}
 	})
 
+	t.Run("filesystem diagnostics", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		if got := sf.Diagnose(FeatureTracefs); got != "tracefs not mounted; mount tracefs at /sys/kernel/tracing (or /sys/kernel/debug/tracing on older kernels)" {
+			t.Errorf("Diagnose(FeatureTracefs) = %q", got)
+		}
+		if got := sf.Diagnose(FeatureBPFfs); got != "bpffs not mounted; mount bpffs at /sys/fs/bpf" {
+			t.Errorf("Diagnose(FeatureBPFfs) = %q", got)
+		}
+	})
+
+	t.Run("namespace diagnostics", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		if got := sf.Diagnose(FeatureInitUserNS); got != "process not in initial user namespace; run in host user namespace or adjust container runtime settings" {
+			t.Errorf("Diagnose(FeatureInitUserNS) = %q", got)
+		}
+	})
+
+	t.Run("unprivileged bpf diagnostics", func(t *testing.T) {
+		sf := &SystemFeatures{}
+		if got := sf.Diagnose(FeatureUnprivilegedBPFDisabled); got != "unprivileged BPF is enabled; set /proc/sys/kernel/unprivileged_bpf_disabled to 1 or 2" {
+			t.Errorf("Diagnose(FeatureUnprivilegedBPFDisabled) = %q", got)
+		}
+	})
+
 	t.Run("no kernel config fallback", func(t *testing.T) {
 		sf := &SystemFeatures{}
 		got := sf.Diagnose(FeatureBPFLSM)
@@ -248,6 +280,39 @@ func TestProbeOptionsFor(t *testing.T) {
 		}
 		if !cfg.kernelConfig {
 			t.Error("expected kernelConfig=true for sleepable BPF")
+		}
+	})
+
+	t.Run("filesystem features", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureTracefs, FeatureBPFfs})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.filesystems {
+			t.Error("expected filesystems=true for filesystem features")
+		}
+	})
+
+	t.Run("namespace features", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureInitUserNS})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.namespaces {
+			t.Error("expected namespaces=true for namespace features")
+		}
+	})
+
+	t.Run("unprivileged bpf disabled needs capabilities", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureUnprivilegedBPFDisabled})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.capabilities {
+			t.Error("expected capabilities=true for unprivileged bpf feature")
 		}
 	})
 

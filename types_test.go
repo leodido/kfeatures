@@ -152,6 +152,10 @@ func TestFeature_String(t *testing.T) {
 		{FeatureBPFSyscall, "bpf() syscall"},
 		{FeaturePerfEventOpen, "perf_event_open() syscall"},
 		{FeatureSleepableBPF, "sleepable BPF"},
+		{FeatureTracefs, "tracefs"},
+		{FeatureBPFfs, "bpffs"},
+		{FeatureInitUserNS, "initial user namespace"},
+		{FeatureUnprivilegedBPFDisabled, "unprivileged BPF disabled"},
 		{Feature(999), "Feature(999)"},
 	}
 	for _, tt := range tests {
@@ -163,9 +167,9 @@ func TestFeature_String(t *testing.T) {
 
 func TestPreemptMode(t *testing.T) {
 	tests := []struct {
-		mode             PreemptMode
-		wantStr          string
-		wantSleepable    bool
+		mode          PreemptMode
+		wantStr       string
+		wantSleepable bool
 	}{
 		{PreemptUnknown, "unknown", false},
 		{PreemptNone, "none", false},
