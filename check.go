@@ -123,9 +123,9 @@ func (sf *SystemFeatures) Result(f Feature) (ProbeResult, bool) {
 	case FeatureSleepableBPF:
 		return ProbeResult{Supported: sf.PreemptMode.SupportsSleepable()}, true
 	case FeatureTraceFS:
-		return sf.Tracefs, true
+		return sf.TraceFS, true
 	case FeatureBPFFS:
-		return sf.BPFfs, true
+		return sf.BPFFS, true
 	case FeatureInitUserNS:
 		return sf.InInitUserNS, true
 	case FeatureUnprivilegedBPFDisabled:
@@ -213,9 +213,13 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 	var needNamespaces bool
 	var programTypes []ebpf.ProgramType
 
-	// Phase-B classification: Debugfs, Securityfs, and InInitPIDNS
-	// remain diagnostics-only for now and are intentionally not
-	// represented as Feature gates.
+	// Phase-B classification decisions:
+	// - DebugFS stays diagnostics-only because TraceFS is the primary readiness gate
+	//   and DebugFS is a legacy/fallback mount signal.
+	// - SecurityFS stays diagnostics-only because BPFLSM/IMA checks already validate
+	//   functional readiness via active LSM state, not only mount presence.
+	// - InInitPIDNS stays diagnostics-only because PID namespace context affects helper
+	//   semantics, but is not a universal run/block condition.
 	for _, f := range reqs {
 		switch f {
 		case FeatureBPFLSM, FeatureIMA:
