@@ -7,7 +7,12 @@ import (
 	"github.com/cilium/ebpf/asm"
 )
 
-// Requirement describes a gate condition consumable by [Check].
+// Requirement describes a pass/fail gate condition consumable by [Check].
+//
+// API boundary:
+//   - [Requirement] values define what must pass.
+//   - [ProbeOption]/WithX values define what [ProbeWith] should collect.
+//   - Do not model probe-scope selection as requirements.
 //
 // Built-in implementations include:
 //   - [Feature]
@@ -22,6 +27,7 @@ type Requirement interface {
 // FeatureGroup is a reusable set of [Requirement] items.
 //
 // Groups can include simple [Feature] values and parameterized requirements.
+// It is a preset container, not a separate gate API family.
 type FeatureGroup []Requirement
 
 // ProgramTypeRequirement requires support for a specific eBPF program type.

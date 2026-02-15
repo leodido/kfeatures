@@ -27,7 +27,7 @@ Neither tells you whether your tool can **actually run**. For example, BPF LSM r
 | Capability | `cilium/ebpf/features` | `bpftool feature probe` | **`kfeatures`** |
 |---|:---:|:---:|:---:|
 | BPF program type probes | ✅ | ✅ | ✅ |
-| BPF map type / helper probes | ✅ | ✅ | — |
+| BPF map type / helper probes | ✅ | ✅ | ✅ (as parameterized requirements in `Check(...)`) |
 | **BTF availability** (`/sys/kernel/btf/vmlinux`) | ❌ | ❌\* | ✅ |
 | **Kernel config parsing** (any `CONFIG_*`, =y/=m) | ❌ | ✅ | ✅ |
 | **Active LSM list** (`/sys/kernel/security/lsm`) | ❌ | ❌ | ✅ |
@@ -51,6 +51,36 @@ Other Go projects ([libbpfgo](https://github.com/aquasecurity/libbpfgo), [Tetrag
 go get github.com/leodido/kfeatures
 ```
 
+## API model
+
+`kfeatures` has two API families with different purposes:
+
+| Intent | API family | Notes |
+|---|---|---|
+| Validate required capabilities (pass/fail) | `Check(...)` | Returns actionable errors for missing requirements |
+| Collect diagnostics/reporting data | `Probe()`, `ProbeWith(WithX...)` | `WithX` selects what to collect; it does not define requirements |
+
+Requirement items consumed by `Check(...)`:
+
+- `Feature` (stable boolean capability)
+- `FeatureGroup` (reusable preset of requirements)
+- `RequireProgramType(...)`, `RequireMapType(...)`, `RequireProgramHelper(...)` (parameterized workload requirements)
+- `FromELF(path)` (planned): producer of requirement items in the same model
+
+Feature-addition review checklist:
+
+1. Is the signal a deterministic run/block requirement with actionable remediation text?
+2. If no, keep it probe-only behind `ProbeWith(WithX...)`.
+3. If yes and boolean, model it as `Feature` and wire `Result(...)`, `Diagnose(...)`, CLI mapping, and tests.
+4. If yes and parameterized, model it as a requirement item type consumed by `Check(...)` (avoid enum explosion).
+5. Do not add new top-level gate entrypoints (`CheckX`, `CheckGroup`, etc.): keep one gate API (`Check(...)`).
+6. Do not use `WithX` as requirements: `WithX` remains probe-scope selection only.
+
+Current classification snapshot:
+
+- Gated via `Check(...)`: `Feature*` readiness checks plus parameterized program/map/helper requirements.
+- Probe-only via `ProbeWith(WithX...)`: contextual/descriptive signals without stable universal policy (for example `DebugFS`, `SecurityFS`, `InInitPIDNS`, raw mitigation strings, raw active LSM list, kernel version).
+
 ## Usage
 
 ### Quick check
@@ -65,6 +95,25 @@ if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err !=
     if errors.As(err, &fe) {
         log.Fatalf("kernel not ready: %s — %s", fe.Feature, fe.Reason)
     }
+}
+```
+
+Mixed requirements example (feature enums + parameterized workload requirements):
+
+```go
+import (
+    "github.com/cilium/ebpf"
+    "github.com/cilium/ebpf/asm"
+    "github.com/leodido/kfeatures"
+)
+
+if err := kfeatures.Check(
+    kfeatures.FeatureBTF,
+    kfeatures.RequireProgramType(ebpf.XDP),
+    kfeatures.RequireMapType(ebpf.Hash),
+    kfeatures.RequireProgramHelper(ebpf.XDP, asm.FnMapLookupElem),
+); err != nil {
+    log.Fatal(err)
 }
 ```
 
@@ -177,7 +226,13 @@ JSON output example:
 | Program types | LSM, kprobe, kprobe.multi, tracepoint, fentry |
 | Core | BTF availability (CO-RE) |
 | Security | BPF LSM enabled, IMA enabled, active LSM list |
-| Capabilities | CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON, unprivileged BPF status |
+| Capabilities and runtime gates | CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON, unprivileged BPF disabled, BPF stats enabled |
+| Syscalls | `bpf()`, `perf_event_open()` |
+| JIT | enabled, hardened, kallsyms, memory limit, `CONFIG_BPF_JIT_ALWAYS_ON` |
+| Filesystems | tracefs, debugfs, securityfs, bpffs |
+| Namespaces | initial user namespace, initial PID namespace |
+| Parameterized workload requirements | program type, map type, helper-per-program-type via requirement items |
+| Mitigation context | Spectre v1/v2 vulnerability status |
 | Kernel config | CONFIG_BPF_LSM, CONFIG_IMA, CONFIG_DEBUG_INFO_BTF, CONFIG_FPROBE, any CONFIG_* |
 
 ## Requirements
