@@ -370,6 +370,41 @@ func TestProbeOptionsFor(t *testing.T) {
 		}
 	})
 
+	t.Run("BPF LSM includes LSM program type", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureBPFLSM})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.securitySubsystems {
+			t.Error("expected securitySubsystems=true for FeatureBPFLSM")
+		}
+		hasLSM := false
+		for _, pt := range cfg.programTypes {
+			if pt == ebpf.LSM {
+				hasLSM = true
+				break
+			}
+		}
+		if !hasLSM {
+			t.Error("expected programTypes to include ebpf.LSM for FeatureBPFLSM")
+		}
+	})
+
+	t.Run("IMA alone sets security but no program types", func(t *testing.T) {
+		opts := probeOptionsFor([]Feature{FeatureIMA})
+		cfg := &probeConfig{}
+		for _, opt := range opts {
+			opt(cfg)
+		}
+		if !cfg.securitySubsystems {
+			t.Error("expected securitySubsystems=true for FeatureIMA")
+		}
+		if len(cfg.programTypes) != 0 {
+			t.Errorf("expected no programTypes for FeatureIMA, got %v", cfg.programTypes)
+		}
+	})
+
 	t.Run("empty", func(t *testing.T) {
 		opts := probeOptionsFor(nil)
 		if len(opts) != 0 {
