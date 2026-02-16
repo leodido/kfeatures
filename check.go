@@ -25,6 +25,14 @@ import (
 func Check(required ...Requirement) error {
 	rs := normalizeRequirements(required)
 
+	// BPF LSM requires that the kernel also supports loading LSM programs.
+	for _, f := range rs.features {
+		if f == FeatureBPFLSM {
+			rs.programTypes = append(rs.programTypes, ebpf.LSM)
+			break
+		}
+	}
+
 	opts := probeOptionsFor(rs.features)
 	opts = append(opts, WithKernelConfig())
 	sf, err := ProbeWith(opts...)
@@ -236,7 +244,10 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 	//   semantics, but is not a universal run/block condition.
 	for _, f := range reqs {
 		switch f {
-		case FeatureBPFLSM, FeatureIMA:
+		case FeatureBPFLSM:
+			needSecurity = true
+			programTypes = append(programTypes, ebpf.LSM)
+		case FeatureIMA:
 			needSecurity = true
 		case FeatureKprobe:
 			programTypes = append(programTypes, ebpf.Kprobe)
