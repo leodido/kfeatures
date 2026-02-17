@@ -25,14 +25,6 @@ import (
 func Check(required ...Requirement) error {
 	rs := normalizeRequirements(required)
 
-	// BPF LSM requires that the kernel also supports loading LSM programs.
-	for _, f := range rs.features {
-		if f == FeatureBPFLSM {
-			rs.programTypes = append(rs.programTypes, ebpf.LSM)
-			break
-		}
-	}
-
 	opts := probeOptionsFor(rs.features)
 	opts = append(opts, WithKernelConfig())
 	sf, err := ProbeWith(opts...)
