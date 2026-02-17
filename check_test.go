@@ -78,10 +78,69 @@ func TestSystemFeatures_Result(t *testing.T) {
 	}
 }
 
+func TestResult_BPFLSMComposite(t *testing.T) {
+	t.Run("both supported", func(t *testing.T) {
+		sf := &SystemFeatures{
+			LSMProgramType: ProbeResult{Supported: true},
+			BPFLSMEnabled:  ProbeResult{Supported: true},
+		}
+		result, ok := sf.Result(FeatureBPFLSM)
+		if !ok || !result.Supported {
+			t.Error("expected Supported=true when both LSM program type and sysfs pass")
+		}
+	})
+
+	t.Run("program type fails with error", func(t *testing.T) {
+		sf := &SystemFeatures{
+			LSMProgramType: ProbeResult{Supported: false, Error: unix.EPERM},
+			BPFLSMEnabled:  ProbeResult{Supported: true},
+		}
+		result, ok := sf.Result(FeatureBPFLSM)
+		if !ok {
+			t.Fatal("expected known=true")
+		}
+		if result.Supported {
+			t.Error("expected Supported=false when LSM program type probe fails")
+		}
+		if result.Error != unix.EPERM {
+			t.Errorf("expected Error=EPERM, got %v", result.Error)
+		}
+	})
+
+	t.Run("program type not supported", func(t *testing.T) {
+		sf := &SystemFeatures{
+			LSMProgramType: ProbeResult{Supported: false},
+			BPFLSMEnabled:  ProbeResult{Supported: true},
+		}
+		result, ok := sf.Result(FeatureBPFLSM)
+		if !ok {
+			t.Fatal("expected known=true")
+		}
+		if result.Supported {
+			t.Error("expected Supported=false when kernel doesn't support LSM programs")
+		}
+	})
+
+	t.Run("program type ok but sysfs fails", func(t *testing.T) {
+		sf := &SystemFeatures{
+			LSMProgramType: ProbeResult{Supported: true},
+			BPFLSMEnabled:  ProbeResult{Supported: false},
+		}
+		result, ok := sf.Result(FeatureBPFLSM)
+		if !ok {
+			t.Fatal("expected known=true")
+		}
+		if result.Supported {
+			t.Error("expected Supported=false when 'bpf' not in LSM list")
+		}
+	})
+}
+
 func TestSystemFeatures_Diagnose(t *testing.T) {
 	t.Run("BPF LSM not in config", func(t *testing.T) {
 		sf := &SystemFeatures{
-			KernelConfig: NewKernelConfig(map[string]ConfigValue{}),
+			LSMProgramType: ProbeResult{Supported: true},
+			KernelConfig:   NewKernelConfig(map[string]ConfigValue{}),
 		}
 		got := sf.Diagnose(FeatureBPFLSM)
 		if got != "CONFIG_BPF_LSM not set; rebuild kernel with CONFIG_BPF_LSM=y" {
@@ -91,7 +150,8 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 
 	t.Run("BPF LSM probe error has deterministic remediation", func(t *testing.T) {
 		sf := &SystemFeatures{
-			BPFLSMEnabled: ProbeResult{Error: errors.New("permission denied")},
+			LSMProgramType: ProbeResult{Supported: true},
+			BPFLSMEnabled:  ProbeResult{Error: errors.New("permission denied")},
 		}
 		got := sf.Diagnose(FeatureBPFLSM)
 		if got != "unable to read active LSM list (/sys/kernel/security/lsm); ensure securityfs is mounted and readable" {
@@ -108,6 +168,29 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 		got := sf.Diagnose(FeatureBPFLSM)
 		if got != "CONFIG_BPF_LSM=y but 'bpf' not in active LSM list; add lsm=...,bpf to kernel boot params" {
 			t.Errorf("Diagnose(FeatureBPFLSM) = %q", got)
+		}
+	})
+
+	t.Run("BPF LSM program type probe error (EPERM)", func(t *testing.T) {
+		sf := &SystemFeatures{
+			LSMProgramType: ProbeResult{Supported: false, Error: unix.EPERM},
+		}
+		got := sf.Diagnose(FeatureBPFLSM)
+		want := "cannot probe LSM program type: operation not permitted; run as root or add CAP_BPF/CAP_SYS_ADMIN"
+		if got != want {
+			t.Errorf("Diagnose(FeatureBPFLSM) = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("BPF LSM program type not supported", func(t *testing.T) {
+		sf := &SystemFeatures{
+			LSMProgramType: ProbeResult{Supported: false},
+			BPFLSMEnabled:  ProbeResult{Supported: true}, // sysfs says yes, but kernel can't load LSM
+		}
+		got := sf.Diagnose(FeatureBPFLSM)
+		want := "LSM program type not supported; use a kernel with BPF LSM support (CONFIG_BPF_LSM=y)"
+		if got != want {
+			t.Errorf("Diagnose(FeatureBPFLSM) = %q, want %q", got, want)
 		}
 	})
 
@@ -247,10 +330,23 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 	})
 
 	t.Run("no kernel config fallback", func(t *testing.T) {
+		// With zero-value SystemFeatures, LSMProgramType is {Supported: false},
+		// so Diagnose reports the program type as the blocker.
 		sf := &SystemFeatures{}
 		got := sf.Diagnose(FeatureBPFLSM)
+		if got != "LSM program type not supported; use a kernel with BPF LSM support (CONFIG_BPF_LSM=y)" {
+			t.Errorf("Diagnose(FeatureBPFLSM) without config = %q", got)
+		}
+	})
+
+	t.Run("no kernel config fallback with LSM program type supported", func(t *testing.T) {
+		// LSM program type works but no kernel config and sysfs check failed.
+		sf := &SystemFeatures{
+			LSMProgramType: ProbeResult{Supported: true},
+		}
+		got := sf.Diagnose(FeatureBPFLSM)
 		if got != "not supported" {
-			t.Errorf("Diagnose(FeatureBPFLSM) without config = %q, want 'not supported'", got)
+			t.Errorf("Diagnose(FeatureBPFLSM) = %q, want 'not supported'", got)
 		}
 	})
 }

@@ -98,6 +98,11 @@ func Check(required ...Requirement) error {
 func (sf *SystemFeatures) Result(f Feature) (ProbeResult, bool) {
 	switch f {
 	case FeatureBPFLSM:
+		// Composite: LSM program type must be loadable AND "bpf" must be in active LSM list.
+		// Check program type loadability first (the most fundamental requirement).
+		if !sf.LSMProgramType.Supported {
+			return sf.LSMProgramType, true
+		}
 		return sf.BPFLSMEnabled, true
 	case FeatureBTF:
 		return sf.BTF, true
@@ -149,13 +154,21 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 
 	switch f {
 	case FeatureBPFLSM:
+		// Check program type loadability first (the most fundamental requirement).
+		if !sf.LSMProgramType.Supported {
+			if sf.LSMProgramType.Error != nil {
+				return fmt.Sprintf("cannot probe LSM program type: %v; run as root or add CAP_BPF/CAP_SYS_ADMIN", sf.LSMProgramType.Error)
+			}
+			return "LSM program type not supported; use a kernel with BPF LSM support (CONFIG_BPF_LSM=y)"
+		}
+		// Program type is loadable: check sysfs and config signals.
 		if sf.BPFLSMEnabled.Error != nil {
 			return "unable to read active LSM list (/sys/kernel/security/lsm); ensure securityfs is mounted and readable"
 		}
 		if kc != nil && !kc.BPFLSM.IsEnabled() {
 			return "CONFIG_BPF_LSM not set; rebuild kernel with CONFIG_BPF_LSM=y"
 		}
-		if kc != nil && kc.BPFLSM.IsEnabled() && sf.LSMProgramType.Supported && !sf.BPFLSMEnabled.Supported {
+		if kc != nil && kc.BPFLSM.IsEnabled() && !sf.BPFLSMEnabled.Supported {
 			return "CONFIG_BPF_LSM=y but 'bpf' not in active LSM list; add lsm=...,bpf to kernel boot params"
 		}
 	case FeatureBTF:
