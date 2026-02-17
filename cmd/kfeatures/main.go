@@ -14,6 +14,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Build metadata injected via ldflags (see .goreleaser.yaml).
+// When built without ldflags (e.g., plain `go build`), these remain
+// at their zero values and the version command omits them gracefully.
+var (
+	version = ""
+	commit  = ""
+	date    = ""
+)
+
 func main() {
 	root := &cobra.Command{
 		Use:   "kfeatures",
@@ -239,6 +248,19 @@ func versionCmd() *cobra.Command {
 		Use:   "version",
 		Short: "Show kernel and tool version",
 		RunE: func(c *cobra.Command, args []string) error {
+			if version != "" {
+				fmt.Printf("kfeatures %s", version)
+				if commit != "" {
+					fmt.Printf(" (%s)", commit)
+				}
+				if date != "" {
+					fmt.Printf(" built %s", date)
+				}
+				fmt.Println()
+			} else {
+				fmt.Println("kfeatures (dev)")
+			}
+
 			sf, err := kfeatures.ProbeWith()
 			if err != nil {
 				return fmt.Errorf("probe failed: %w", err)
