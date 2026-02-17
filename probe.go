@@ -312,11 +312,16 @@ func probeKprobeMulti(kc *KernelConfig) ProbeResult {
 	}
 
 	// kprobe.multi requires CONFIG_FPROBE.
-	if kc != nil && kc.KprobeMulti.IsEnabled() {
+	if kc == nil {
+		// Cannot determine kprobe.multi support without kernel config.
+		// This commonly happens in containers where /proc/config.gz and
+		// /boot/config-* are not available.
+		return ProbeResult{Supported: false, Error: ErrNoKernelConfig}
+	}
+	if kc.KprobeMulti.IsEnabled() {
 		return ProbeResult{Supported: true}
 	}
 
-	// Cannot confirm without kernel config.
 	return ProbeResult{Supported: false}
 }
 
