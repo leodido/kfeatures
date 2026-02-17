@@ -35,6 +35,14 @@ jobs:
       - name: Test
         run: go test -v -race -count=1 ./...
 
+      - name: Smoke test version command
+        run: |
+          go build -o ./kfeatures ./cmd/kfeatures
+          output=$(./kfeatures version)
+          echo "$output"
+          echo "$output" | grep -q "kfeatures (dev)"
+          echo "$output" | grep -q "Kernel:"
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
