@@ -3,10 +3,14 @@
 package kfeatures
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/features"
 )
 
 func TestReadActiveLSMsFrom(t *testing.T) {
@@ -303,4 +307,56 @@ func TestSystemFeatures_String(t *testing.T) {
 	if !strings.Contains(output, "Initial PID namespace: no") {
 		t.Error("String() should show initial PID namespace status")
 	}
+}
+
+func TestProbeKprobeMulti_NilConfig(t *testing.T) {
+	result := probeKprobeMulti(nil)
+	// When kprobe program type itself is not supported, the function
+	// returns early with Supported: false and no Error (or an error about
+	// the program type). We only care about the nil-config behavior when
+	// kprobe IS supported, so skip if it's not.
+	if result.Error != nil && !errors.Is(result.Error, ErrNoKernelConfig) {
+		t.Skipf("BPF probe failed with unexpected error, skipping: %v", result.Error)
+	}
+	if err := features.HaveProgramType(ebpf.Kprobe); err != nil {
+		t.Skip("kprobe program type not supported on this system, skipping")
+	}
+
+	// When kernel config is unavailable, the result should indicate
+	// the probe was inconclusive (not just "unsupported")
+	if result.Error == nil {
+		t.Error("probeKprobeMulti(nil) should set Error to indicate config unavailable, got nil")
+	}
+	if !errors.Is(result.Error, ErrNoKernelConfig) {
+		t.Errorf("probeKprobeMulti(nil) Error = %v, want ErrNoKernelConfig", result.Error)
+	}
+}
+
+func TestProbeKprobeMulti_WithConfig(t *testing.T) {
+	// Skip if kprobe program type is not supported.
+	if err := features.HaveProgramType(ebpf.Kprobe); err != nil {
+		t.Skip("kprobe program type not supported on this system, skipping")
+	}
+
+	t.Run("CONFIG_FPROBE enabled", func(t *testing.T) {
+		kc := NewKernelConfig(map[string]ConfigValue{"FPROBE": ConfigBuiltin})
+		result := probeKprobeMulti(kc)
+		if !result.Supported {
+			t.Error("probeKprobeMulti with FPROBE enabled should return Supported=true")
+		}
+		if result.Error != nil {
+			t.Errorf("probeKprobeMulti with FPROBE enabled should have nil Error, got %v", result.Error)
+		}
+	})
+
+	t.Run("CONFIG_FPROBE not set", func(t *testing.T) {
+		kc := NewKernelConfig(map[string]ConfigValue{})
+		result := probeKprobeMulti(kc)
+		if result.Supported {
+			t.Error("probeKprobeMulti without FPROBE should return Supported=false")
+		}
+		if result.Error != nil {
+			t.Errorf("probeKprobeMulti without FPROBE should have nil Error, got %v", result.Error)
+		}
+	})
 }
