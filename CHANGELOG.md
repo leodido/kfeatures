@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- CLI now compiles on non-Linux platforms (macOS, Windows) and returns `ErrUnsupportedPlatform` instead of failing to build
+- `ErrUnsupportedPlatform` sentinel moved to `types.go` for cross-platform visibility
+- CLI error output no longer prints usage text on command errors (`SilenceUsage`)
+- CLI error messages are cleaner: no redundant prefix wrapping
+
+### Fixed
+
+- `Check(FeatureBPFLSM)` now evaluates LSM program type loadability as part of the composite result, removing a special case from `Check()` loop
+- `ProbeWith(WithKernelConfig())` returns `ErrNoKernelConfig` when kprobe.multi config key is unavailable instead of silently succeeding
+- `version` command includes tool version, commit hash, and build date via GoReleaser ldflags
+
+### Added
+
+- CLI smoke test suite using BATS (bats-core) with `bats-assert`, covering Linux and macOS
+- macOS CI job with `go vet` and cross-platform CLI validation
+- `ErrUnsupportedPlatform` exported sentinel error for non-Linux platforms
+- Build-constrained stub files (`probe_other.go`, `check_other.go`, `config_other.go`) for non-Linux compilation
+
 ## [0.1.0] — 2026-02-15
 
 First public release.
