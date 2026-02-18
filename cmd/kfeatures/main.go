@@ -1,5 +1,3 @@
-//go:build linux
-
 package main
 
 import (
@@ -32,6 +30,7 @@ func main() {
 It detects program type support, BTF availability, security subsystems (LSM, IMA),
 kernel configuration, and process capabilities. Use it for operator diagnostics,
 CI/CD gating, or container runtime validation.`,
+		SilenceUsage: true,
 	}
 
 	root.AddCommand(probeCmd())
@@ -65,7 +64,7 @@ func probeCmd() *cobra.Command {
 		RunE: func(c *cobra.Command, args []string) error {
 			sf, err := kfeatures.ProbeNoCache()
 			if err != nil {
-				return fmt.Errorf("probe failed: %w", err)
+				return err
 			}
 
 			if opts.JSON {
@@ -212,7 +211,7 @@ func configCmd() *cobra.Command {
 		RunE: func(c *cobra.Command, args []string) error {
 			sf, err := kfeatures.ProbeWith(kfeatures.WithKernelConfig())
 			if err != nil {
-				return fmt.Errorf("probe failed: %w", err)
+				return err
 			}
 
 			if sf.KernelConfig == nil {
@@ -263,7 +262,7 @@ func versionCmd() *cobra.Command {
 
 			sf, err := kfeatures.ProbeWith()
 			if err != nil {
-				return fmt.Errorf("probe failed: %w", err)
+				return err
 			}
 			fmt.Printf("Kernel: %s\n", sf.KernelVersion)
 			return nil
