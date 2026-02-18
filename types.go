@@ -1,6 +1,13 @@
 package kfeatures
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+// ErrUnsupportedPlatform is returned by all probe and check functions
+// on non-Linux platforms where kernel feature detection is not possible.
+var ErrUnsupportedPlatform = errors.New("probing requires Linux")
 
 // ProbeResult represents the outcome of a kernel feature probe.
 type ProbeResult struct {
