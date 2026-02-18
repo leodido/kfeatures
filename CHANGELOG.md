@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-02-18
+
 ### Changed
 
 - CLI now compiles on non-Linux platforms (macOS, Windows) and returns `ErrUnsupportedPlatform` instead of failing to build
@@ -57,5 +59,6 @@ First public release.
 - Release automation with GoReleaser and GitHub generated release notes (`.github/release.yml`)
 - SAST workflow (CodeQL)
 
-[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/leodido/kfeatures/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/leodido/kfeatures/releases/tag/v0.1.0
