@@ -35,13 +35,116 @@ jobs:
       - name: Test
         run: go test -v -race -count=1 ./...
 
-      - name: Smoke test version command
+      - name: Build CLI
+        run: go build -o ./kfeatures ./cmd/kfeatures
+
+      - name: "CLI: version"
         run: |
-          go build -o ./kfeatures ./cmd/kfeatures
           output=$(./kfeatures version)
           echo "$output"
           echo "$output" | grep -q "kfeatures (dev)"
           echo "$output" | grep -q "Kernel:"
+
+      - name: "CLI: probe"
+        run: |
+          output=$(./kfeatures probe)
+          echo "$output"
+          echo "$output" | grep -q "Kernel:"
+          echo "$output" | grep -q "bpf():"
+
+      - name: "CLI: probe --json"
+        run: |
+          output=$(./kfeatures probe --json)
+          echo "$output"
+          echo "$output" | python3 -c "import sys,json; json.load(sys.stdin)"
+
+      - name: "CLI: check (satisfied)"
+        run: ./kfeatures check --require bpf-syscall
+
+      - name: "CLI: check --json (satisfied)"
+        run: |
+          output=$(./kfeatures check --require bpf-syscall --json)
+          echo "$output"
+          echo "$output" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['ok']==True"
+
+      - name: "CLI: check (unknown feature)"
+        run: |
+          output=$(./kfeatures check --require nonexistent 2>&1) && exit 1
+          echo "$output" | grep -q "unknown feature"
+
+      - name: "CLI: config"
+        run: |
+          # config may exit 1 if kernel config is unavailable on the runner;
+          # we only verify the binary doesn't crash
+          ./kfeatures config || true
+
+      - name: "CLI: help"
+        run: |
+          ./kfeatures --help | grep -q "kfeatures probes kernel capabilities"
+          ./kfeatures probe --help | grep -q "Probe all kernel features"
+          ./kfeatures check --help | grep -q "Check that the kernel supports all required features"
+          ./kfeatures config --help | grep -q "Display parsed kernel configuration"
+          ./kfeatures version --help | grep -q "Show kernel and tool version"
+
+  cli-macos:
+    name: CLI (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build CLI
+        run: go build -o ./kfeatures ./cmd/kfeatures
+
+      - name: "CLI: help"
+        run: |
+          ./kfeatures --help | grep -q "kfeatures probes kernel capabilities"
+          ./kfeatures probe --help | grep -q "Probe all kernel features"
+          ./kfeatures check --help | grep -q "Check that the kernel supports all required features"
+          ./kfeatures config --help | grep -q "Display parsed kernel configuration"
+          ./kfeatures version --help | grep -q "Show kernel and tool version"
+
+      - name: "CLI: commands fail gracefully on non-Linux"
+        run: |
+          fail_with_msg() {
+            local label="$1"; shift
+            echo "--- $label ---"
+            output=$("$@" 2>&1) && {
+              echo "FAIL: expected non-zero exit for: $label"
+              exit 1
+            }
+            echo "$output"
+            echo "$output" | grep -q "probing requires Linux" || {
+              echo "FAIL: expected 'probing requires Linux' in output for: $label"
+              exit 1
+            }
+          }
+          fail_with_msg "version"                   ./kfeatures version
+          fail_with_msg "probe"                     ./kfeatures probe
+          fail_with_msg "probe --json"              ./kfeatures probe --json
+          fail_with_msg "config"                    ./kfeatures config
+          fail_with_msg "config --json"             ./kfeatures config --json
+          fail_with_msg "check --require ..."       ./kfeatures check --require bpf-syscall
+          fail_with_msg "check --require ... --json" ./kfeatures check --require bpf-syscall --json
+
+      - name: "CLI: version prints tool identity before failing"
+        run: |
+          stdout=$(./kfeatures version 2>/dev/null) || true
+          echo "$stdout" | grep -q "kfeatures (dev)"
+
+      - name: "CLI: no usage printed on errors"
+        run: |
+          output=$(./kfeatures probe 2>&1) || true
+          if echo "$output" | grep -q "Usage:"; then
+            echo "FAIL: usage should not be printed on errors"
+            exit 1
+          fi
 
   lint:
     name: Lint
