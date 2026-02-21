@@ -1,6 +1,7 @@
 # Binaries
 /kfeatures
 /cmd/kfeatures/kfeatures
+/bin/
 
 # Test artifacts
 *.test
