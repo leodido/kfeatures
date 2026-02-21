@@ -12,7 +12,6 @@ import (
 	"github.com/leodido/structcli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/thediveo/enumflag/v2"
 )
 
 // Build metadata injected via ldflags (see .goreleaser.yaml).
@@ -287,21 +286,24 @@ func formatWrappedList(items []string, indent string, maxWidth int) string {
 
 type featureRequirements []kfeatures.Feature
 
-var featureIdentifierMap = func() map[kfeatures.Feature][]string {
-	ids := make(map[kfeatures.Feature][]string, len(kfeatures.FeatureValues()))
-	for _, f := range kfeatures.FeatureValues() {
-		ids[f] = []string{f.String()}
-	}
-	return ids
-}()
-
 func (r *featureRequirements) String() string {
-	names := make([]string, 0, len(*r))
-	for _, f := range *r {
-		names = append(names, f.String())
+	if len(*r) == 0 {
+		return ""
 	}
 
-	return strings.Join(names, ",")
+	out := make([]byte, 0, len(*r)*12)
+	for _, f := range *r {
+		if len(out) > 0 {
+			out = append(out, ',')
+		}
+		var err error
+		out, err = f.AppendText(out)
+		if err != nil {
+			return ""
+		}
+	}
+
+	return string(out)
 }
 
 func (r *featureRequirements) Set(input string) error {
@@ -332,8 +334,8 @@ func parseFeatureRequirements(input string) (featureRequirements, error) {
 		}
 
 		var feature kfeatures.Feature
-		enumValue := enumflag.New(&feature, "kfeatures.Feature", featureIdentifierMap, enumflag.EnumCaseInsensitive)
-		if err := enumValue.Set(name); err != nil {
+		// Keep CLI parsing case-insensitive by normalizing input before decode.
+		if err := feature.UnmarshalText([]byte(strings.ToLower(name))); err != nil {
 			return nil, fmt.Errorf("unknown feature: %q (available: %s)", name, availableFeatures())
 		}
 
