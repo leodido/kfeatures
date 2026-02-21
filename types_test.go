@@ -137,32 +137,61 @@ func TestFeature_String(t *testing.T) {
 		f    Feature
 		want string
 	}{
-		{FeatureBPFLSM, "BPF LSM"},
-		{FeatureBTF, "BTF"},
-		{FeatureIMA, "IMA"},
+		{FeatureBPFLSM, "bpf-lsm"},
+		{FeatureBTF, "btf"},
+		{FeatureIMA, "ima"},
 		{FeatureKprobe, "kprobe"},
-		{FeatureKprobeMulti, "kprobe.multi"},
+		{FeatureKprobeMulti, "kprobe-multi"},
 		{FeatureFentry, "fentry"},
 		{FeatureTracepoint, "tracepoint"},
-		{FeatureCapBPF, "CAP_BPF"},
-		{FeatureCapSysAdmin, "CAP_SYS_ADMIN"},
-		{FeatureCapPerfmon, "CAP_PERFMON"},
-		{FeatureJITEnabled, "BPF JIT"},
-		{FeatureJITHardened, "BPF JIT hardening"},
-		{FeatureBPFSyscall, "bpf() syscall"},
-		{FeaturePerfEventOpen, "perf_event_open() syscall"},
-		{FeatureSleepableBPF, "sleepable BPF"},
-		{FeatureTraceFS, "tracefs"},
-		{FeatureBPFFS, "bpffs"},
-		{FeatureInitUserNS, "initial user namespace"},
-		{FeatureUnprivilegedBPFDisabled, "unprivileged BPF disabled"},
-		{FeatureBPFStatsEnabled, "BPF stats enabled"},
+		{FeatureCapBPF, "cap-bpf"},
+		{FeatureCapSysAdmin, "cap-sys-admin"},
+		{FeatureCapPerfmon, "cap-perfmon"},
+		{FeatureJITEnabled, "jit-enabled"},
+		{FeatureJITHardened, "jit-hardened"},
+		{FeatureBPFSyscall, "bpf-syscall"},
+		{FeaturePerfEventOpen, "perf-event-open"},
+		{FeatureSleepableBPF, "sleepable-bpf"},
+		{FeatureTraceFS, "trace-fs"},
+		{FeatureBPFFS, "bpf-fs"},
+		{FeatureInitUserNS, "init-user-ns"},
+		{FeatureUnprivilegedBPFDisabled, "unprivileged-bpf-disabled"},
+		{FeatureBPFStatsEnabled, "bpf-stats-enabled"},
 		{Feature(999), "Feature(999)"},
 	}
 	for _, tt := range tests {
 		if got := tt.f.String(); got != tt.want {
 			t.Errorf("Feature(%d).String() = %q, want %q", tt.f, got, tt.want)
 		}
+	}
+}
+
+func TestFeature_ParseAndHelpers(t *testing.T) {
+	names := FeatureNames()
+	values := FeatureValues()
+
+	if len(names) != len(values) {
+		t.Fatalf("FeatureNames() and FeatureValues() length mismatch: %d != %d", len(names), len(values))
+	}
+
+	for i, name := range names {
+		got, err := ParseFeature(name)
+		if err != nil {
+			t.Fatalf("ParseFeature(%q) error = %v", name, err)
+		}
+		if got != values[i] {
+			t.Fatalf("ParseFeature(%q) = %v, want %v", name, got, values[i])
+		}
+		if !got.IsValid() {
+			t.Fatalf("Feature(%v).IsValid() = false, want true", got)
+		}
+	}
+
+	if _, err := ParseFeature("not-a-feature"); err == nil {
+		t.Fatal("ParseFeature(not-a-feature) expected error")
+	}
+	if Feature(999).IsValid() {
+		t.Fatal("Feature(999).IsValid() = true, want false")
 	}
 }
 

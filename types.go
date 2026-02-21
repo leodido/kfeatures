@@ -273,78 +273,31 @@ func derivePreemptMode(raw map[string]ConfigValue) PreemptMode {
 	return PreemptUnknown
 }
 
+//go:generate go tool go-enum --file $GOFILE --names --values --initialism BPF,LSM,BTF,IMA,JIT,FS,NS
+
 // Feature represents a kernel capability that can be checked via [Check].
-type Feature int
-
-const (
-	// FeatureBPFLSM requires BPF LSM support (CONFIG_BPF_LSM + enabled at boot).
-	FeatureBPFLSM Feature = iota
-	// FeatureBTF requires BTF support (CONFIG_DEBUG_INFO_BTF) for CO-RE programs.
-	FeatureBTF
-	// FeatureIMA requires Integrity Measurement Architecture support.
-	FeatureIMA
-	// FeatureKprobe requires kprobe program support.
-	FeatureKprobe
-	// FeatureKprobeMulti requires kprobe.multi program support.
-	FeatureKprobeMulti
-	// FeatureFentry requires fentry/fexit program support.
-	FeatureFentry
-	// FeatureTracepoint requires tracepoint program support.
-	FeatureTracepoint
-	// FeatureCapBPF requires the CAP_BPF capability (kernel 5.8+).
-	FeatureCapBPF
-	// FeatureCapSysAdmin requires the CAP_SYS_ADMIN capability.
-	FeatureCapSysAdmin
-	// FeatureCapPerfmon requires the CAP_PERFMON capability.
-	FeatureCapPerfmon
-	// FeatureJITEnabled requires the BPF JIT compiler to be enabled.
-	FeatureJITEnabled
-	// FeatureJITHardened requires BPF JIT hardening to be active.
-	FeatureJITHardened
-	// FeatureBPFSyscall requires the bpf() syscall to be available.
-	FeatureBPFSyscall
-	// FeaturePerfEventOpen requires the perf_event_open() syscall to be available.
-	FeaturePerfEventOpen
-	// FeatureSleepableBPF requires a preemptible kernel for BPF_F_SLEEPABLE programs.
-	FeatureSleepableBPF
-	// FeatureTraceFS requires tracefs to be mounted.
-	FeatureTraceFS
-	// FeatureBPFFS requires bpffs to be mounted.
-	FeatureBPFFS
-	// FeatureInitUserNS requires running in the initial user namespace.
-	FeatureInitUserNS
-	// FeatureUnprivilegedBPFDisabled requires unprivileged BPF to be disabled.
-	FeatureUnprivilegedBPFDisabled
-	// FeatureBPFStatsEnabled requires BPF runtime stats collection to be enabled.
-	FeatureBPFStatsEnabled
+/*
+ENUM(
+bpf-lsm
+btf
+ima
+kprobe
+kprobe-multi
+fentry
+tracepoint
+cap-bpf
+cap-sys-admin
+cap-perfmon
+jit-enabled
+jit-hardened
+bpf-syscall
+perf-event-open
+sleepable-bpf
+trace-fs
+bpf-fs
+init-user-ns
+unprivileged-bpf-disabled
+bpf-stats-enabled
 )
-
-var featureNames = map[Feature]string{
-	FeatureBPFLSM:                  "BPF LSM",
-	FeatureBTF:                     "BTF",
-	FeatureIMA:                     "IMA",
-	FeatureKprobe:                  "kprobe",
-	FeatureKprobeMulti:             "kprobe.multi",
-	FeatureFentry:                  "fentry",
-	FeatureTracepoint:              "tracepoint",
-	FeatureCapBPF:                  "CAP_BPF",
-	FeatureCapSysAdmin:             "CAP_SYS_ADMIN",
-	FeatureCapPerfmon:              "CAP_PERFMON",
-	FeatureJITEnabled:              "BPF JIT",
-	FeatureJITHardened:             "BPF JIT hardening",
-	FeatureBPFSyscall:              "bpf() syscall",
-	FeaturePerfEventOpen:           "perf_event_open() syscall",
-	FeatureSleepableBPF:            "sleepable BPF",
-	FeatureTraceFS:                 "tracefs",
-	FeatureBPFFS:                   "bpffs",
-	FeatureInitUserNS:              "initial user namespace",
-	FeatureUnprivilegedBPFDisabled: "unprivileged BPF disabled",
-	FeatureBPFStatsEnabled:         "BPF stats enabled",
-}
-
-func (f Feature) String() string {
-	if name, ok := featureNames[f]; ok {
-		return name
-	}
-	return fmt.Sprintf("Feature(%d)", f)
-}
+*/
+type Feature int
