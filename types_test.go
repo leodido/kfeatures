@@ -195,6 +195,68 @@ func TestFeature_ParseAndHelpers(t *testing.T) {
 	}
 }
 
+func TestFeature_ParseFeature_CaseInsensitive(t *testing.T) {
+	tests := []struct {
+		input string
+		want  Feature
+	}{
+		{input: "IMA", want: FeatureIMA},
+		{input: "iMa", want: FeatureIMA},
+		{input: "BPF-SYSCALL", want: FeatureBPFSyscall},
+		{input: "Trace-FS", want: FeatureTraceFS},
+	}
+
+	for _, tt := range tests {
+		got, err := ParseFeature(tt.input)
+		if err != nil {
+			t.Fatalf("ParseFeature(%q) error = %v", tt.input, err)
+		}
+		if got != tt.want {
+			t.Fatalf("ParseFeature(%q) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestFeature_TextCodecs(t *testing.T) {
+	t.Run("marshal text", func(t *testing.T) {
+		text, err := FeatureCapBPF.MarshalText()
+		if err != nil {
+			t.Fatalf("MarshalText() error = %v", err)
+		}
+		if got, want := string(text), "cap-bpf"; got != want {
+			t.Fatalf("MarshalText() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("unmarshal text case insensitive", func(t *testing.T) {
+		var got Feature
+		if err := got.UnmarshalText([]byte("CAP-PERFMON")); err != nil {
+			t.Fatalf("UnmarshalText() error = %v", err)
+		}
+		if got != FeatureCapPerfmon {
+			t.Fatalf("UnmarshalText() = %v, want %v", got, FeatureCapPerfmon)
+		}
+	})
+
+	t.Run("unmarshal text invalid value", func(t *testing.T) {
+		var got Feature
+		if err := got.UnmarshalText([]byte("not-a-feature")); err == nil {
+			t.Fatal("UnmarshalText(not-a-feature) expected error")
+		}
+	})
+
+	t.Run("append text", func(t *testing.T) {
+		f := FeatureBPFLSM
+		out, err := (&f).AppendText([]byte("prefix:"))
+		if err != nil {
+			t.Fatalf("AppendText() error = %v", err)
+		}
+		if got, want := string(out), "prefix:bpf-lsm"; got != want {
+			t.Fatalf("AppendText() = %q, want %q", got, want)
+		}
+	})
+}
+
 func TestPreemptMode(t *testing.T) {
 	tests := []struct {
 		mode          PreemptMode
