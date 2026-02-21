@@ -152,31 +152,55 @@ func (x Feature) IsValid() bool {
 }
 
 var _FeatureValue = map[string]Feature{
-	_FeatureName[0:7]:     FeatureBPFLSM,
-	_FeatureName[7:10]:    FeatureBTF,
-	_FeatureName[10:13]:   FeatureIMA,
-	_FeatureName[13:19]:   FeatureKprobe,
-	_FeatureName[19:31]:   FeatureKprobeMulti,
-	_FeatureName[31:37]:   FeatureFentry,
-	_FeatureName[37:47]:   FeatureTracepoint,
-	_FeatureName[47:54]:   FeatureCapBPF,
-	_FeatureName[54:67]:   FeatureCapSysAdmin,
-	_FeatureName[67:78]:   FeatureCapPerfmon,
-	_FeatureName[78:89]:   FeatureJITEnabled,
-	_FeatureName[89:101]:  FeatureJITHardened,
-	_FeatureName[101:112]: FeatureBPFSyscall,
-	_FeatureName[112:127]: FeaturePerfEventOpen,
-	_FeatureName[127:140]: FeatureSleepableBPF,
-	_FeatureName[140:148]: FeatureTraceFS,
-	_FeatureName[148:154]: FeatureBPFFS,
-	_FeatureName[154:166]: FeatureInitUserNS,
-	_FeatureName[166:191]: FeatureUnprivilegedBPFDisabled,
-	_FeatureName[191:208]: FeatureBPFStatsEnabled,
+	_FeatureName[0:7]:                      FeatureBPFLSM,
+	strings.ToLower(_FeatureName[0:7]):     FeatureBPFLSM,
+	_FeatureName[7:10]:                     FeatureBTF,
+	strings.ToLower(_FeatureName[7:10]):    FeatureBTF,
+	_FeatureName[10:13]:                    FeatureIMA,
+	strings.ToLower(_FeatureName[10:13]):   FeatureIMA,
+	_FeatureName[13:19]:                    FeatureKprobe,
+	strings.ToLower(_FeatureName[13:19]):   FeatureKprobe,
+	_FeatureName[19:31]:                    FeatureKprobeMulti,
+	strings.ToLower(_FeatureName[19:31]):   FeatureKprobeMulti,
+	_FeatureName[31:37]:                    FeatureFentry,
+	strings.ToLower(_FeatureName[31:37]):   FeatureFentry,
+	_FeatureName[37:47]:                    FeatureTracepoint,
+	strings.ToLower(_FeatureName[37:47]):   FeatureTracepoint,
+	_FeatureName[47:54]:                    FeatureCapBPF,
+	strings.ToLower(_FeatureName[47:54]):   FeatureCapBPF,
+	_FeatureName[54:67]:                    FeatureCapSysAdmin,
+	strings.ToLower(_FeatureName[54:67]):   FeatureCapSysAdmin,
+	_FeatureName[67:78]:                    FeatureCapPerfmon,
+	strings.ToLower(_FeatureName[67:78]):   FeatureCapPerfmon,
+	_FeatureName[78:89]:                    FeatureJITEnabled,
+	strings.ToLower(_FeatureName[78:89]):   FeatureJITEnabled,
+	_FeatureName[89:101]:                   FeatureJITHardened,
+	strings.ToLower(_FeatureName[89:101]):  FeatureJITHardened,
+	_FeatureName[101:112]:                  FeatureBPFSyscall,
+	strings.ToLower(_FeatureName[101:112]): FeatureBPFSyscall,
+	_FeatureName[112:127]:                  FeaturePerfEventOpen,
+	strings.ToLower(_FeatureName[112:127]): FeaturePerfEventOpen,
+	_FeatureName[127:140]:                  FeatureSleepableBPF,
+	strings.ToLower(_FeatureName[127:140]): FeatureSleepableBPF,
+	_FeatureName[140:148]:                  FeatureTraceFS,
+	strings.ToLower(_FeatureName[140:148]): FeatureTraceFS,
+	_FeatureName[148:154]:                  FeatureBPFFS,
+	strings.ToLower(_FeatureName[148:154]): FeatureBPFFS,
+	_FeatureName[154:166]:                  FeatureInitUserNS,
+	strings.ToLower(_FeatureName[154:166]): FeatureInitUserNS,
+	_FeatureName[166:191]:                  FeatureUnprivilegedBPFDisabled,
+	strings.ToLower(_FeatureName[166:191]): FeatureUnprivilegedBPFDisabled,
+	_FeatureName[191:208]:                  FeatureBPFStatsEnabled,
+	strings.ToLower(_FeatureName[191:208]): FeatureBPFStatsEnabled,
 }
 
 // ParseFeature attempts to convert a string to a Feature.
 func ParseFeature(name string) (Feature, error) {
 	if x, ok := _FeatureValue[name]; ok {
+		return x, nil
+	}
+	// Case insensitive parse, do a separate lookup to prevent unnecessary cost of lowercasing a string if we don't need to.
+	if x, ok := _FeatureValue[strings.ToLower(name)]; ok {
 		return x, nil
 	}
 	return Feature(0), fmt.Errorf("%s is %w", name, ErrInvalidFeature)
