@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/leodido/kfeatures"
 	"github.com/leodido/structcli"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/thediveo/enumflag/v2"
 )
 
 // Build metadata injected via ldflags (see .goreleaser.yaml).
@@ -84,18 +87,31 @@ func probeCmd() *cobra.Command {
 
 // CheckOptions defines flags for the check subcommand.
 type CheckOptions struct {
-	Require []string `flag:"require" flagshort:"r" flagdescr:"Required features (comma-separated: bpf-syscall,perf-event-open,bpf-lsm,btf,ima,kprobe,kprobe-multi,fentry,tracepoint,cap-bpf,cap-sys-admin,cap-perfmon,jit-enabled,jit-hardened,sleepable-bpf,trace-fs,bpf-fs,init-user-ns,unprivileged-bpf-disabled,bpf-stats-enabled; legacy aliases: jit,tracefs,bpffs)" flagrequired:"true"`
-	JSON    bool     `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
+	Require featureRequirements `flag:"require" flagshort:"r" flagdescr:"Required features" flagrequired:"true" flagcustom:"true"`
+	JSON    bool                `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
 func (o *CheckOptions) Attach(c *cobra.Command) error {
 	return structcli.Define(c, o)
 }
 
-var featureAliases = map[string]string{
-	"jit":     "jit-enabled",
-	"tracefs": "trace-fs",
-	"bpffs":   "bpf-fs",
+func (o *CheckOptions) DefineRequire(name, short, descr string, structField reflect.StructField, fieldValue reflect.Value) (pflag.Value, string) {
+	fieldPtr := fieldValue.Addr().Interface().(*featureRequirements)
+	*fieldPtr = nil
+
+	choices := strings.Join(kfeatures.FeatureNames(), ",")
+	enhancedDescr := fmt.Sprintf("%s {%s}", descr, choices)
+
+	return fieldPtr, enhancedDescr
+}
+
+func (o *CheckOptions) DecodeRequire(input any) (any, error) {
+	s, ok := input.(string)
+	if !ok {
+		return input, nil
+	}
+
+	return parseFeatureRequirements(s)
 }
 
 func checkCmd() *cobra.Command {
@@ -111,36 +127,17 @@ Available features:
   bpf-syscall, perf-event-open, bpf-lsm, btf, ima, kprobe, kprobe-multi,
   fentry, tracepoint, cap-bpf, cap-sys-admin, cap-perfmon, jit-enabled, jit-hardened,
   sleepable-bpf, trace-fs, bpf-fs, init-user-ns, unprivileged-bpf-disabled,
-  bpf-stats-enabled
-
-Legacy aliases:
-  jit, tracefs, bpffs`,
+  bpf-stats-enabled`,
 		PreRunE: func(c *cobra.Command, args []string) error {
 			return structcli.Unmarshal(c, opts)
 		},
 		RunE: func(c *cobra.Command, args []string) error {
-			var features []kfeatures.Feature
-			for _, name := range opts.Require {
-				// Handle comma-separated values within a single flag value.
-				for _, n := range strings.Split(name, ",") {
-					n = strings.TrimSpace(n)
-					if n == "" {
-						continue
-					}
-					f, err := parseFeature(n)
-					if err != nil {
-						return fmt.Errorf("unknown feature: %q (available: %s)", n, availableFeatures())
-					}
-					features = append(features, f)
-				}
-			}
-
-			if len(features) == 0 {
+			if len(opts.Require) == 0 {
 				return fmt.Errorf("no features specified")
 			}
 
-			requirements := make([]kfeatures.Requirement, 0, len(features))
-			for _, f := range features {
+			requirements := make([]kfeatures.Requirement, 0, len(opts.Require))
+			for _, f := range opts.Require {
 				requirements = append(requirements, f)
 			}
 
@@ -265,9 +262,60 @@ func availableFeatures() string {
 	return strings.Join(kfeatures.FeatureNames(), ", ")
 }
 
-func parseFeature(name string) (kfeatures.Feature, error) {
-	if canonical, ok := featureAliases[name]; ok {
-		name = canonical
+type featureRequirements []kfeatures.Feature
+
+var featureIdentifierMap = func() map[kfeatures.Feature][]string {
+	ids := make(map[kfeatures.Feature][]string, len(kfeatures.FeatureValues()))
+	for _, f := range kfeatures.FeatureValues() {
+		ids[f] = []string{f.String()}
 	}
-	return kfeatures.ParseFeature(name)
+	return ids
+}()
+
+func (r *featureRequirements) String() string {
+	names := make([]string, 0, len(*r))
+	for _, f := range *r {
+		names = append(names, f.String())
+	}
+
+	return strings.Join(names, ",")
+}
+
+func (r *featureRequirements) Set(input string) error {
+	features, err := parseFeatureRequirements(input)
+	if err != nil {
+		return err
+	}
+
+	*r = append(*r, features...)
+	return nil
+}
+
+func (r *featureRequirements) Type() string {
+	return "kfeatures.Feature"
+}
+
+func parseFeatureRequirements(input string) (featureRequirements, error) {
+	if strings.TrimSpace(input) == "" {
+		return featureRequirements{}, nil
+	}
+
+	parts := strings.Split(input, ",")
+	features := make(featureRequirements, 0, len(parts))
+	for _, part := range parts {
+		name := strings.TrimSpace(part)
+		if name == "" {
+			continue
+		}
+
+		var feature kfeatures.Feature
+		enumValue := enumflag.New(&feature, "kfeatures.Feature", featureIdentifierMap, enumflag.EnumCaseInsensitive)
+		if err := enumValue.Set(name); err != nil {
+			return nil, fmt.Errorf("unknown feature: %q (available: %s)", name, availableFeatures())
+		}
+
+		features = append(features, feature)
+	}
+
+	return features, nil
 }
