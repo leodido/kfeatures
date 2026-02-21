@@ -24,16 +24,16 @@ jobs:
           go-version: ${{ matrix.go-version }}
 
       - name: Download dependencies
-        run: go mod download
+        run: make deps
 
       - name: Verify dependencies
-        run: go mod verify
+        run: make verify-deps
 
       - name: Vet
-        run: go vet ./...
+        run: make vet
 
       - name: Test
-        run: go test -v -race -count=1 ./...
+        run: make test TEST_FLAGS="-v -race -count=1"
 
       - name: Setup Bats
         id: setup-bats
@@ -62,7 +62,7 @@ jobs:
           go-version: "1.24"
 
       - name: Vet
-        run: go vet ./...
+        run: make vet
 
       - name: Setup Bats
         id: setup-bats
