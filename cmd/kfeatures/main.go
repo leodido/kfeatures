@@ -87,7 +87,7 @@ func probeCmd() *cobra.Command {
 
 // CheckOptions defines flags for the check subcommand.
 type CheckOptions struct {
-	Require featureRequirements `flag:"require" flagshort:"r" flagdescr:"Required features" flagrequired:"true" flagcustom:"true"`
+	Require featureRequirements `flag:"require" flagshort:"r" flagdescr:"Required features (see available features above)" flagrequired:"true" flagcustom:"true"`
 	JSON    bool                `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
@@ -98,11 +98,7 @@ func (o *CheckOptions) Attach(c *cobra.Command) error {
 func (o *CheckOptions) DefineRequire(name, short, descr string, structField reflect.StructField, fieldValue reflect.Value) (pflag.Value, string) {
 	fieldPtr := fieldValue.Addr().Interface().(*featureRequirements)
 	*fieldPtr = nil
-
-	choices := strings.Join(kfeatures.FeatureNames(), ",")
-	enhancedDescr := fmt.Sprintf("%s {%s}", descr, choices)
-
-	return fieldPtr, enhancedDescr
+	return fieldPtr, descr
 }
 
 func (o *CheckOptions) DecodeRequire(input any) (any, error) {
@@ -120,14 +116,7 @@ func checkCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "Check specific kernel feature requirements",
-		Long: `Check that the kernel supports all required features.
-Exits with code 0 if all requirements are met, 1 if any are missing.
-
-Available features:
-  bpf-syscall, perf-event-open, bpf-lsm, btf, ima, kprobe, kprobe-multi,
-  fentry, tracepoint, cap-bpf, cap-sys-admin, cap-perfmon, jit-enabled, jit-hardened,
-  sleepable-bpf, trace-fs, bpf-fs, init-user-ns, unprivileged-bpf-disabled,
-  bpf-stats-enabled`,
+		Long:  checkLongDescription(),
 		PreRunE: func(c *cobra.Command, args []string) error {
 			return structcli.Unmarshal(c, opts)
 		},
@@ -262,6 +251,40 @@ func availableFeatures() string {
 	return strings.Join(kfeatures.FeatureNames(), ", ")
 }
 
+func checkLongDescription() string {
+	return fmt.Sprintf(`Check that the kernel supports all required features.
+Exits with code 0 if all requirements are met, 1 if any are missing.
+
+Available features:
+%s`, formatWrappedList(kfeatures.FeatureNames(), "  ", 80))
+}
+
+func formatWrappedList(items []string, indent string, maxWidth int) string {
+	if len(items) == 0 {
+		return indent + "(none)"
+	}
+
+	lines := make([]string, 0, len(items))
+	line := indent
+	for i, item := range items {
+		token := item
+		if i < len(items)-1 {
+			token += ", "
+		}
+
+		if len(line)+len(token) > maxWidth && line != indent {
+			lines = append(lines, strings.TrimRight(line, " "))
+			line = indent + token
+			continue
+		}
+
+		line += token
+	}
+
+	lines = append(lines, strings.TrimRight(line, " "))
+	return strings.Join(lines, "\n")
+}
+
 type featureRequirements []kfeatures.Feature
 
 var featureIdentifierMap = func() map[kfeatures.Feature][]string {
@@ -292,7 +315,7 @@ func (r *featureRequirements) Set(input string) error {
 }
 
 func (r *featureRequirements) Type() string {
-	return "kfeatures.Feature"
+	return "feature"
 }
 
 func parseFeatureRequirements(input string) (featureRequirements, error) {
