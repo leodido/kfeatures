@@ -273,7 +273,7 @@ func derivePreemptMode(raw map[string]ConfigValue) PreemptMode {
 	return PreemptUnknown
 }
 
-//go:generate go tool go-enum --file $GOFILE --marshal --names --values --initialism BPF,LSM,BTF,IMA,JIT,FS,NS
+//go:generate go tool go-enum --file $GOFILE --nocase --marshal --names --values --initialism BPF,LSM,BTF,IMA,JIT,FS,NS
 
 // Feature represents a kernel capability that can be checked via [Check].
 /*
