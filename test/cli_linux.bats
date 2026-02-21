@@ -47,6 +47,11 @@ setup_file() {
     echo "$output" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['ok']==True"
 }
 
+@test "check: require parsing is case-insensitive" {
+    run "$KFEATURES_BIN" check --require BPF-SYSCALL
+    assert_success
+}
+
 @test "check: unknown feature is rejected" {
     run "$KFEATURES_BIN" check --require nonexistent
     assert_failure

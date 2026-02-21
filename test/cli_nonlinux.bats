@@ -59,3 +59,10 @@ setup_file() {
     assert_failure
     assert_output --partial "probing requires Linux"
 }
+
+@test "check: mixed-case require parses before platform error" {
+    run "$KFEATURES_BIN" check --require BPF-SYSCALL
+    assert_failure
+    assert_output --partial "probing requires Linux"
+    refute_output --partial "invalid argument"
+}

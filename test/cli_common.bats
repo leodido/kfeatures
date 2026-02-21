@@ -27,6 +27,24 @@ setup_file() {
     assert_output --partial "Check that the kernel supports all required features"
 }
 
+@test "help: check require flag points to available features without duplication" {
+    run "$KFEATURES_BIN" check --help
+    assert_success
+    assert_output --partial "Available features:"
+    assert_output --partial "Required features (see available features above)"
+
+    available_count="$(printf "%s\n" "$output" | grep -c '^Available features:$')"
+    [[ "$available_count" -eq 1 ]]
+
+    require_line="$(printf "%s\n" "$output" | grep -E '^[[:space:]]*-r, --require[[:space:]]+feature')"
+    [[ -n "$require_line" ]]
+    [[ "$require_line" != *"{"* ]]
+    [[ "$require_line" != *"bpf-lsm"* ]]
+
+    feature_token_count="$(printf "%s\n" "$output" | grep -o 'bpf-lsm' | wc -l | tr -d ' ')"
+    [[ "$feature_token_count" -eq 1 ]]
+}
+
 @test "help: config subcommand" {
     run "$KFEATURES_BIN" config --help
     assert_success
@@ -45,4 +63,10 @@ setup_file() {
     run "$KFEATURES_BIN" probe 2>&1
     # Whether it succeeds (Linux) or fails (macOS), usage must not appear.
     refute_output --partial "Usage:"
+}
+
+@test "check: legacy alias is rejected" {
+    run "$KFEATURES_BIN" check --require bpffs
+    assert_failure
+    assert_output --partial 'unknown feature: "bpffs"'
 }
