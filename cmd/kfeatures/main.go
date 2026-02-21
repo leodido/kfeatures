@@ -157,6 +157,11 @@ func checkCmd() *cobra.Command {
 	if err := opts.Attach(cmd); err != nil {
 		panic(err)
 	}
+	if err := cmd.RegisterFlagCompletionFunc("require", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return completeFeatureRequirements(toComplete)
+	}); err != nil {
+		panic(err)
+	}
 	return cmd
 }
 
@@ -342,4 +347,41 @@ func parseFeatureRequirements(input string) (featureRequirements, error) {
 	}
 
 	return features, nil
+}
+
+func completeFeatureRequirements(toComplete string) ([]string, cobra.ShellCompDirective) {
+	prefix := ""
+	current := toComplete
+	selected := map[string]struct{}{}
+
+	if comma := strings.LastIndex(toComplete, ","); comma >= 0 {
+		prefix = toComplete[:comma+1]
+		current = toComplete[comma+1:]
+
+		for _, raw := range strings.Split(toComplete[:comma], ",") {
+			raw = strings.TrimSpace(raw)
+			if raw == "" {
+				continue
+			}
+
+			var f kfeatures.Feature
+			if err := f.UnmarshalText([]byte(raw)); err == nil {
+				selected[f.String()] = struct{}{}
+			}
+		}
+	}
+
+	current = strings.ToLower(strings.TrimSpace(current))
+	candidates := make([]string, 0, len(kfeatures.FeatureNames()))
+	for _, name := range kfeatures.FeatureNames() {
+		if _, ok := selected[name]; ok {
+			continue
+		}
+		if current != "" && !strings.HasPrefix(strings.ToLower(name), current) {
+			continue
+		}
+		candidates = append(candidates, prefix+name)
+	}
+
+	return candidates, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }
