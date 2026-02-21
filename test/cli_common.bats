@@ -70,3 +70,17 @@ setup_file() {
     assert_failure
     assert_output --partial 'unknown feature: "bpffs"'
 }
+
+@test "completion: check require suggests feature values" {
+    run "$KFEATURES_BIN" __complete check --require ""
+    assert_success
+    assert_output --partial "bpf-lsm"
+}
+
+@test "completion: check require supports comma-separated values" {
+    run "$KFEATURES_BIN" __complete check --require "BPF-SYSCALL,tr"
+    assert_success
+    assert_output --partial "BPF-SYSCALL,tracepoint"
+    assert_output --partial "BPF-SYSCALL,trace-fs"
+    refute_output --partial "BPF-SYSCALL,bpf-syscall"
+}
