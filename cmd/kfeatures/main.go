@@ -334,8 +334,7 @@ func parseFeatureRequirements(input string) (featureRequirements, error) {
 		}
 
 		var feature kfeatures.Feature
-		// Keep CLI parsing case-insensitive by normalizing input before decode.
-		if err := feature.UnmarshalText([]byte(strings.ToLower(name))); err != nil {
+		if err := feature.UnmarshalText([]byte(name)); err != nil {
 			return nil, fmt.Errorf("unknown feature: %q (available: %s)", name, availableFeatures())
 		}
 
