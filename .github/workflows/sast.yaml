@@ -46,8 +46,8 @@ jobs:
 
       - name: Build
         run: |
-          go mod download
-          go build -v ./...
+          make deps
+          make build
 
       - name: CodeQL analysis
         uses: github/codeql-action/analyze@efffb483ec7bb162c4b7935f8b35ab6b94136c7b # v2.21.0
