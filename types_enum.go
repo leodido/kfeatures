@@ -181,3 +181,27 @@ func ParseFeature(name string) (Feature, error) {
 	}
 	return Feature(0), fmt.Errorf("%s is %w", name, ErrInvalidFeature)
 }
+
+// MarshalText implements the text marshaller method.
+func (x Feature) MarshalText() ([]byte, error) {
+	return []byte(x.String()), nil
+}
+
+// UnmarshalText implements the text unmarshaller method.
+func (x *Feature) UnmarshalText(text []byte) error {
+	name := string(text)
+	tmp, err := ParseFeature(name)
+	if err != nil {
+		return err
+	}
+	*x = tmp
+	return nil
+}
+
+// AppendText appends the textual representation of itself to the end of b
+// (allocating a larger slice if necessary) and returns the updated slice.
+//
+// Implementations must not retain b, nor mutate any bytes within b[:len(b)].
+func (x *Feature) AppendText(b []byte) ([]byte, error) {
+	return append(b, x.String()...), nil
+}
