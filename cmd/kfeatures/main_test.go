@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/leodido/kfeatures"
+	"github.com/spf13/cobra"
 )
 
 func TestParseFeatureRequirements_CaseInsensitive(t *testing.T) {
@@ -65,4 +66,46 @@ func TestCheckLongDescription_UsesEnumNames(t *testing.T) {
 			t.Fatalf("checkLongDescription() missing feature %q", name)
 		}
 	}
+}
+
+func TestCompleteFeatureRequirements(t *testing.T) {
+	t.Run("empty input returns feature candidates", func(t *testing.T) {
+		got, directive := completeFeatureRequirements("")
+		if len(got) == 0 {
+			t.Fatal("expected non-empty candidates")
+		}
+		if got[0] != kfeatures.FeatureNames()[0] {
+			t.Fatalf("first candidate = %q, want %q", got[0], kfeatures.FeatureNames()[0])
+		}
+		if directive != cobra.ShellCompDirectiveNoFileComp|cobra.ShellCompDirectiveNoSpace {
+			t.Fatalf("directive = %v, want %v", directive, cobra.ShellCompDirectiveNoFileComp|cobra.ShellCompDirectiveNoSpace)
+		}
+	})
+
+	t.Run("prefix filter is case-insensitive", func(t *testing.T) {
+		got, _ := completeFeatureRequirements("BPF-S")
+		if len(got) == 0 {
+			t.Fatal("expected filtered candidates")
+		}
+		for _, c := range got {
+			if !strings.HasPrefix(c, "bpf-s") {
+				t.Fatalf("candidate %q does not match expected prefix", c)
+			}
+		}
+	})
+
+	t.Run("comma-separated completion prefixes and avoids duplicates", func(t *testing.T) {
+		got, _ := completeFeatureRequirements("BPF-SYSCALL,tr")
+		if len(got) == 0 {
+			t.Fatal("expected comma-separated candidates")
+		}
+		for _, c := range got {
+			if !strings.HasPrefix(c, "BPF-SYSCALL,") {
+				t.Fatalf("candidate %q missing expected prefix", c)
+			}
+			if strings.EqualFold(c, "BPF-SYSCALL,bpf-syscall") {
+				t.Fatalf("duplicate selected feature suggested: %q", c)
+			}
+		}
+	})
 }
