@@ -109,6 +109,10 @@ func (o *CheckOptions) DecodeRequire(input any) (any, error) {
 	return parseFeatureRequirements(s)
 }
 
+func (o *CheckOptions) CompleteRequire(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return completeFeatureRequirements(toComplete)
+}
+
 func checkCmd() *cobra.Command {
 	opts := &CheckOptions{}
 
@@ -155,11 +159,6 @@ func checkCmd() *cobra.Command {
 	}
 
 	if err := opts.Attach(cmd); err != nil {
-		panic(err)
-	}
-	if err := cmd.RegisterFlagCompletionFunc("require", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return completeFeatureRequirements(toComplete)
-	}); err != nil {
 		panic(err)
 	}
 	return cmd
