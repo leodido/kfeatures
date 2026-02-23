@@ -68,9 +68,11 @@ func TestCheckLongDescription_UsesEnumNames(t *testing.T) {
 	}
 }
 
-func TestCompleteFeatureRequirements(t *testing.T) {
+func TestCheckOptionsCompleteRequire(t *testing.T) {
+	opts := &CheckOptions{}
+
 	t.Run("empty input returns feature candidates", func(t *testing.T) {
-		got, directive := completeFeatureRequirements("")
+		got, directive := opts.CompleteRequire(nil, nil, "")
 		if len(got) == 0 {
 			t.Fatal("expected non-empty candidates")
 		}
@@ -83,7 +85,7 @@ func TestCompleteFeatureRequirements(t *testing.T) {
 	})
 
 	t.Run("prefix filter is case-insensitive", func(t *testing.T) {
-		got, _ := completeFeatureRequirements("BPF-S")
+		got, _ := opts.CompleteRequire(nil, nil, "BPF-S")
 		if len(got) == 0 {
 			t.Fatal("expected filtered candidates")
 		}
@@ -95,7 +97,7 @@ func TestCompleteFeatureRequirements(t *testing.T) {
 	})
 
 	t.Run("comma-separated completion prefixes and avoids duplicates", func(t *testing.T) {
-		got, _ := completeFeatureRequirements("BPF-SYSCALL,tr")
+		got, _ := opts.CompleteRequire(nil, nil, "BPF-SYSCALL,tr")
 		if len(got) == 0 {
 			t.Fatal("expected comma-separated candidates")
 		}
