@@ -64,8 +64,8 @@ github.com/leodido/go-enum v0.0.0-20260221115226-271db0a55db2 h1:jSInIn+1HxCini8
 github.com/leodido/go-enum v0.0.0-20260221115226-271db0a55db2/go.mod h1:NW9KxEeVGKWsnMSq/03eKcugTigntFuQkOD/vrg5488=
 github.com/leodido/go-urn v1.4.0 h1:WT9HwE9SGECu3lg4d/dIA+jxlljEa1/ffXKmRjqdmIQ=
 github.com/leodido/go-urn v1.4.0/go.mod h1:bvxc+MVxLKB4z00jd1z+Dvzr47oO32F/QSNjSBOlFxI=
-github.com/leodido/structcli v0.10.0 h1:1SdBrkOBezGYvrKpq/mfeYwfxOLO7u0NCAG/6Gsei4k=
-github.com/leodido/structcli v0.10.0/go.mod h1:Tn8D3VE3eupE7H23HF92TMX+sMwBD04pNQAIu7PRl+I=
+github.com/leodido/structcli v0.11.0 h1:FTydXgZvsaCiU5V11mvQjEM/BRC+LhsshkLQC266jfw=
+github.com/leodido/structcli v0.11.0/go.mod h1:Tn8D3VE3eupE7H23HF92TMX+sMwBD04pNQAIu7PRl+I=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
 github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=
