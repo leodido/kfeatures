@@ -4,7 +4,9 @@ package kfeatures
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"os/exec"
 	"slices"
 	"strings"
 	"sync"
@@ -214,6 +216,12 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 		// This indicates IMA is compiled in and securityfs is mounted,
 		// but does not guarantee IMA is actively measuring files.
 		sf.IMADirectory = probeIMADirectory()
+
+		// IMAMeasurementActive: check if IMA is actively measuring execs.
+		// Only probe if IMA is enabled (in LSM list) to avoid unnecessary exec.
+		if sf.IMAEnabled.Supported {
+			sf.IMAMeasurementActive = probeIMAMeasurementActive()
+		}
 	}
 
 	// Probe capabilities
@@ -377,4 +385,58 @@ func probeIMADirectory() ProbeResult {
 		return ProbeResult{Supported: false}
 	}
 	return ProbeResult{Supported: false, Error: err}
+}
+
+const imaMeasurementCountPath = "/sys/kernel/security/ima/runtime_measurements_count"
+
+// ProbeIMAMeasurementActive checks whether IMA is actively measuring files.
+// Exported so consumers can call it directly without going through [Check].
+func ProbeIMAMeasurementActive() ProbeResult {
+	return probeIMAMeasurementActive()
+}
+
+// probeIMAMeasurementActive checks whether IMA has an active measurement
+// policy by reading the runtime measurement count. A count > 1 (beyond the
+// boot_aggregate entry) means at least one measurement rule is active.
+//
+// When the count is exactly 1, the probe executes /bin/true and re-reads
+// the count. An increase confirms a measurement rule covering exec
+// (e.g., func=BPRM_CHECK) is present.
+func probeIMAMeasurementActive() ProbeResult {
+	before, err := readMeasurementCount()
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+
+	// If measurements already exist beyond boot_aggregate, some rule is active.
+	if before > 1 {
+		return ProbeResult{Supported: true}
+	}
+
+	// Execute /bin/true to see if a measurement rule triggers on exec.
+	// This is a ~2ms side effect with a deterministic, always-present binary.
+	_ = (&exec.Cmd{Path: "/bin/true"}).Run()
+
+	after, err := readMeasurementCount()
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+
+	if after > before {
+		return ProbeResult{Supported: true}
+	}
+
+	return ProbeResult{Supported: false}
+}
+
+// readMeasurementCount reads the IMA runtime measurement count.
+func readMeasurementCount() (int, error) {
+	data, err := os.ReadFile(imaMeasurementCountPath)
+	if err != nil {
+		return 0, err
+	}
+	content := strings.TrimSpace(string(data))
+	var count int
+	_, err = fmt.Sscanf(content, "%d", &count)
+	return count, err
 }
