@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-04-23
+
 ### Added
 
 - `RequireMount(path, magic)`: parameterized requirement that gates on a filesystem being mounted at `path` with a superblock magic equal to `magic`. Magic constants come from `golang.org/x/sys/unix` (e.g. `unix.BPF_FS_MAGIC`, `unix.TRACEFS_MAGIC`, `unix.CGROUP2_SUPER_MAGIC`). Useful for non-default mount paths (e.g. bpffs mounted at `/run/bpf`) or pseudo-filesystems not covered by the built-in `Feature*` gates. Backed by the same internal `checkMount` helper as `FeatureBPFFS` / `FeatureTraceFS`.
@@ -68,6 +70,7 @@ First public release.
 - Release automation with GoReleaser and GitHub generated release notes (`.github/release.yml`)
 - SAST workflow (CodeQL)
 
-[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/leodido/kfeatures/compare/v0.3.1...v0.4.0
 [0.2.0]: https://github.com/leodido/kfeatures/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/leodido/kfeatures/releases/tag/v0.1.0
