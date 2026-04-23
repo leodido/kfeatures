@@ -65,6 +65,7 @@ Requirement items consumed by `Check(...)`:
 - `Feature` (stable boolean capability)
 - `FeatureGroup` (reusable preset of requirements)
 - `RequireProgramType(...)`, `RequireMapType(...)`, `RequireProgramHelper(...)` (parameterized workload requirements)
+- `RequireMount(path, magic)` (parameterized filesystem-mount gate; magic comes from `golang.org/x/sys/unix`, e.g. `unix.BPF_FS_MAGIC`)
 - `FromELF(path)`: producer of requirement items in the same model (program/map types + helper-per-program requirements)
 
 `FromELF` is parser-only and available cross-platform; runtime probing/checking remains Linux-specific.
@@ -121,6 +122,21 @@ if err := kfeatures.Check(
     kfeatures.RequireProgramType(ebpf.XDP),
     kfeatures.RequireMapType(ebpf.Hash),
     kfeatures.RequireProgramHelper(ebpf.XDP, asm.FnMapLookupElem),
+); err != nil {
+    log.Fatal(err)
+}
+```
+
+Custom mount-path gate (e.g. bpffs mounted somewhere other than `/sys/fs/bpf`):
+
+```go
+import (
+    "github.com/leodido/kfeatures"
+    "golang.org/x/sys/unix"
+)
+
+if err := kfeatures.Check(
+    kfeatures.RequireMount("/run/bpf", unix.BPF_FS_MAGIC),
 ); err != nil {
     log.Fatal(err)
 }

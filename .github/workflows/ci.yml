@@ -80,6 +80,45 @@ jobs:
           TERM: xterm
         run: bats test/
 
+  integration:
+    name: Integration (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Download dependencies
+        run: make deps
+
+      - name: Build kfeatures
+        run: make build
+
+      - name: Go integration tests (root)
+        run: |
+          sudo -E env "PATH=$PATH" "GOCACHE=$HOME/.cache/go-build" "GOMODCACHE=$(go env GOMODCACHE)" \
+            go test -tags=integration -run 'Integration' -race -count=1 ./...
+
+      - name: Setup Bats
+        id: setup-bats
+        uses: bats-core/bats-action@5b1e60c2ee94cb1b44a616ea4b1f466f9d6e38ef # v4.0.0
+        with:
+          bats-version: latest
+          support-install: true
+          assert-install: true
+          detik-install: false
+          file-install: false
+
+      - name: Bats integration tests (root)
+        env:
+          BATS_LIB_PATH: ${{ steps.setup-bats.outputs.lib-path }}
+          TERM: xterm
+        run: |
+          sudo -E env "PATH=$PATH" "BATS_LIB_PATH=$BATS_LIB_PATH" "TERM=$TERM" \
+            bats test/cli_linux_mount.bats
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
