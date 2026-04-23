@@ -171,27 +171,27 @@ func TestProbeWith_WithAll(t *testing.T) {
 	}
 }
 
-func TestProbeFilesystemMount(t *testing.T) {
+func TestProbeFilesystemPresent(t *testing.T) {
 	t.Run("existing directory", func(t *testing.T) {
 		dir := t.TempDir()
-		result := probeFilesystemMount(dir)
+		result := probeFilesystemPresent(dir)
 		if !result.Supported {
-			t.Error("probeFilesystemMount should return Supported=true for existing directory")
+			t.Error("probeFilesystemPresent should return Supported=true for existing directory")
 		}
 	})
 
 	t.Run("nonexistent path", func(t *testing.T) {
-		result := probeFilesystemMount("/nonexistent/path/that/should/not/exist")
+		result := probeFilesystemPresent("/nonexistent/path/that/should/not/exist")
 		if result.Supported {
-			t.Error("probeFilesystemMount should return Supported=false for nonexistent path")
+			t.Error("probeFilesystemPresent should return Supported=false for nonexistent path")
 		}
 	})
 
 	t.Run("fallback to second path", func(t *testing.T) {
 		dir := t.TempDir()
-		result := probeFilesystemMount("/nonexistent/path", dir)
+		result := probeFilesystemPresent("/nonexistent/path", dir)
 		if !result.Supported {
-			t.Error("probeFilesystemMount should return Supported=true when fallback path exists")
+			t.Error("probeFilesystemPresent should return Supported=true when fallback path exists")
 		}
 	})
 
@@ -201,9 +201,9 @@ func TestProbeFilesystemMount(t *testing.T) {
 		if err := os.WriteFile(path, []byte("data"), 0644); err != nil {
 			t.Fatal(err)
 		}
-		result := probeFilesystemMount(path)
+		result := probeFilesystemPresent(path)
 		if result.Supported {
-			t.Error("probeFilesystemMount should return Supported=false for regular file")
+			t.Error("probeFilesystemPresent should return Supported=false for regular file")
 		}
 	})
 }

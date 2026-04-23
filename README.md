@@ -238,7 +238,7 @@ JSON output example:
 | Capabilities and runtime gates | CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON, unprivileged BPF disabled, BPF stats enabled |
 | Syscalls | `bpf()`, `perf_event_open()` |
 | JIT | enabled, hardened, kallsyms, memory limit, `CONFIG_BPF_JIT_ALWAYS_ON` |
-| Filesystems | tracefs, debugfs, securityfs, bpffs |
+| Filesystems | tracefs, debugfs, securityfs, bpffs (gated `tracefs` and `bpffs` checks verify the filesystem is mounted with the expected superblock magic) |
 | Namespaces | initial user namespace, initial PID namespace |
 | Parameterized workload requirements | program type, map type, helper-per-program-type via requirement items |
 | Mitigation context | Spectre v1/v2 vulnerability status |
