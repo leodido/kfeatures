@@ -84,3 +84,35 @@ setup_file() {
     assert_output --partial "BPF-SYSCALL,trace-fs"
     refute_output --partial "BPF-SYSCALL,bpf-syscall"
 }
+
+# --- --jsonschema discovery ---
+
+@test "jsonschema: root command emits valid schema" {
+    run "$KFEATURES_BIN" --jsonschema
+    assert_success
+    assert_output --partial '"title": "kfeatures"'
+    echo "$output" | python3 -c "import sys,json; json.load(sys.stdin)"
+}
+
+@test "jsonschema: subcommand emits per-command schema" {
+    run "$KFEATURES_BIN" check --jsonschema
+    assert_success
+    assert_output --partial '"title": "kfeatures check"'
+    assert_output --partial '"require"'
+    echo "$output" | python3 -c "import sys,json; json.load(sys.stdin)"
+}
+
+@test "jsonschema=tree: root emits array covering subcommands" {
+    run "$KFEATURES_BIN" --jsonschema=tree
+    assert_success
+    assert_output --partial '"title": "kfeatures"'
+    assert_output --partial '"title": "kfeatures probe"'
+    assert_output --partial '"title": "kfeatures check"'
+    echo "$output" | python3 -c "import sys,json; assert isinstance(json.load(sys.stdin), list)"
+}
+
+@test "jsonschema: unknown value is rejected" {
+    run "$KFEATURES_BIN" --jsonschema=xml
+    assert_failure
+    assert_output --partial "unknown --jsonschema value"
+}
