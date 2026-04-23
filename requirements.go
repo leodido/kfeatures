@@ -80,7 +80,17 @@ func RequireProgramHelper(pt ebpf.ProgramType, helper asm.BuiltinFunc) ProgramHe
 //
 // Magic numbers live in golang.org/x/sys/unix (e.g. unix.BPF_FS_MAGIC,
 // unix.TRACEFS_MAGIC, unix.CGROUP2_SUPER_MAGIC). Pass the raw value.
+//
+// Panics if path is empty or magic is zero. Both indicate API misuse: an
+// empty path cannot be statfs'd, and a zero magic does not correspond to any
+// known filesystem and would silently mismatch every real mount.
 func RequireMount(path string, magic uint32) MountRequirement {
+	if path == "" {
+		panic("kfeatures.RequireMount: path must not be empty")
+	}
+	if magic == 0 {
+		panic("kfeatures.RequireMount: magic must not be zero (use a constant from golang.org/x/sys/unix, e.g. unix.BPF_FS_MAGIC)")
+	}
 	return MountRequirement{Path: path, Magic: magic}
 }
 

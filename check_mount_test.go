@@ -111,6 +111,37 @@ func TestCheck_RequireMount(t *testing.T) {
 	})
 }
 
+func TestRequireMount_RejectsInvalidInput(t *testing.T) {
+	cases := []struct {
+		name string
+		path string
+		// Zero-value uint32 sentinel doubles as "magic == 0" trigger.
+		magic uint32
+		want  string
+	}{
+		{name: "empty path", path: "", magic: unix.BPF_FS_MAGIC, want: "path must not be empty"},
+		{name: "zero magic", path: "/sys/fs/bpf", magic: 0, want: "magic must not be zero"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r == nil {
+					t.Fatalf("RequireMount(%q, 0x%x) did not panic", tc.path, tc.magic)
+				}
+				msg, ok := r.(string)
+				if !ok {
+					t.Fatalf("panic value is not a string: %T %v", r, r)
+				}
+				if !strings.Contains(msg, tc.want) {
+					t.Errorf("panic message %q does not contain %q", msg, tc.want)
+				}
+			}()
+			_ = RequireMount(tc.path, tc.magic)
+		})
+	}
+}
+
 func TestRequirementSet_DedupMounts(t *testing.T) {
 	rs := normalizeRequirements([]Requirement{
 		RequireMount("/x", 1),
