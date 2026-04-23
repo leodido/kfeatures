@@ -18,6 +18,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Check(FeatureBPFFS)` and `Check(FeatureTraceFS)` now verify the filesystem is actually mounted with the expected superblock magic (`BPF_FS_MAGIC`, `TRACEFS_MAGIC`) instead of only checking that a directory exists at the path. Previously, both gates returned success on any system where `/sys/fs/bpf` (resp. `/sys/kernel/tracing`) existed as a directory — which is the case by default on systemd-based distros even when the corresponding pseudo-filesystem is not mounted. Callers gating on these features (e.g. before pinning maps on bpffs) would silently get a false positive and fail later at `bpf_obj_pin()`. Diagnostic-only fields `SystemFeatures.DebugFS` / `.SecurityFS` keep their previous presence-only semantics.
 
+## [0.3.1] — 2026-03-23
+
+### Added
+
+- `FeatureIMAMeasurementActive` and exported `ProbeIMAMeasurementActive()`: detects whether IMA has an active measurement policy by reading the runtime measurement count. A count greater than 1 (beyond the boot aggregate) means at least one rule is active; when the count is exactly 1 the probe executes `/bin/true` and re-reads to confirm. When measurement is active, file hashes are cached in the inode security blob and consumers can skip recomputation on repeated access.
+
+## [0.3.0] — 2026-02-23
+
+### Added
+
+- CLI: `--require` flag value completion (shell completion now suggests valid feature names).
+- CLI: case-insensitive parsing of `--require` values backed by generated `Feature` text codecs.
+- Generated `Feature` enum via `go-enum` with initialism support and text marshal/unmarshal helpers; CLI parses requirements through the generated helpers.
+- Build: top-level `Makefile` with the canonical lint/test/build/release targets; CI workflows now invoke them.
+
+### Changed
+
+- `Check()` no longer special-cases LSM injection — `FeatureBPFLSM` is a composite gate evaluated through the standard `Result` / `Diagnose` paths.
+- CLI: `check` help and require UX reworked around the generated enum.
+- Bumped `structcli` to `v0.11.0` (via `v0.10.0`).
+- CI: pinned the goreleaser CLI version used in the release workflow.
+
 ## [0.2.0] — 2026-02-18
 
 ### Changed
@@ -72,5 +94,7 @@ First public release.
 
 [Unreleased]: https://github.com/leodido/kfeatures/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/leodido/kfeatures/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/leodido/kfeatures/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/leodido/kfeatures/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/leodido/kfeatures/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/leodido/kfeatures/releases/tag/v0.1.0
