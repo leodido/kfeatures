@@ -1,10 +1,10 @@
 # kfeatures
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/leodido/kfeatures.svg)](https://pkg.go.dev/github.com/leodido/kfeatures)
-[![CI](https://github.com/leodido/kfeatures/actions/workflows/ci.yml/badge.svg)](https://github.com/leodido/kfeatures/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/leodido/kfeatures?sort=semver)](https://github.com/leodido/kfeatures/releases/latest)
-[![Go version](https://img.shields.io/github/go-mod/go-version/leodido/kfeatures)](go.mod)
-[![License](https://img.shields.io/github/license/leodido/kfeatures)](LICENSE)
+[![Go Reference](https://img.shields.io/static/v1?label=&message=reference&color=00ADD8&logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/leodido/kfeatures)
+[![CI](https://img.shields.io/github/actions/workflow/status/leodido/kfeatures/ci.yml?branch=main&label=CI&style=flat-square)](https://github.com/leodido/kfeatures/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/leodido/kfeatures?sort=semver&style=flat-square)](https://github.com/leodido/kfeatures/releases/latest)
+[![Go version](https://img.shields.io/github/go-mod/go-version/leodido/kfeatures?style=flat-square)](go.mod)
+[![License](https://img.shields.io/github/license/leodido/kfeatures?style=flat-square)](LICENSE)
 
 > Can my eBPF tool actually run here, and if not, exactly what needs to change?
 
@@ -32,23 +32,23 @@ Neither tells you whether your tool can **actually run**. For example, BPF LSM r
 
 | Capability | `cilium/ebpf/features` | `bpftool feature probe` | **`kfeatures`** |
 |---|:---:|:---:|:---:|
-| BPF program type probes | ✅ | ✅ | ✅ |
-| BPF map type / helper probes | ✅ | ✅ | ✅ (as parameterized requirements in `Check(...)`) |
-| **BTF availability** (`/sys/kernel/btf/vmlinux`) | ❌ | ❌\* | ✅ |
-| **Kernel config parsing** (any `CONFIG_*`, =y/=m) | ❌ | ✅ | ✅ |
-| **Active LSM list** (`/sys/kernel/security/lsm`) | ❌ | ❌ | ✅ |
-| **BPF LSM enabled** (config + boot params + program type) | ❌ | ❌ | ✅ |
-| **IMA detection** (LSM list + securityfs directory) | ❌ | ❌ | ✅ |
-| **IMA active measurement** (runtime policy detection) | ❌ | ❌ | ✅ |
-| **Process capabilities** (CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON) | ❌ | ❌ | ✅ |
-| **Unprivileged BPF status** | ❌ | ✅ | ✅ |
-| **Mount-state gates** (bpffs/tracefs/custom paths via superblock magic) | ❌ | ❌ | ✅ |
-| **ELF requirement extraction** (parse `.o`, derive requirements) | ❌ | ❌ | ✅ |
-| **Composite feature validation** | ❌ | ❌ | ✅ |
-| **Actionable diagnostics** (remediation steps) | ❌ | ❌ | ✅ |
-| Selective probing (minimize overhead) | Per-function | All-or-nothing | ✅ |
-| Pure Go, no CGO | ✅ | ❌ | ✅ |
-| Usable as a Go library | ✅ | ❌ | ✅ |
+| BPF program type probes | ✓ | ✓ | ✓ |
+| BPF map type / helper probes | ✓ | ✓ | ✓ (as parameterized requirements in `Check(...)`) |
+| **BTF availability** (`/sys/kernel/btf/vmlinux`) | ✗ | ✗\* | ✓ |
+| **Kernel config parsing** (any `CONFIG_*`, =y/=m) | ✗ | ✓ | ✓ |
+| **Active LSM list** (`/sys/kernel/security/lsm`) | ✗ | ✗ | ✓ |
+| **BPF LSM enabled** (config + boot params + program type) | ✗ | ✗ | ✓ |
+| **IMA detection** (LSM list + securityfs directory) | ✗ | ✗ | ✓ |
+| **IMA active measurement** (runtime policy detection) | ✗ | ✗ | ✓ |
+| **Process capabilities** (CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON) | ✗ | ✗ | ✓ |
+| **Unprivileged BPF status** | ✗ | ✓ | ✓ |
+| **Mount-state gates** (bpffs/tracefs/custom paths via superblock magic) | ✗ | ✗ | ✓ |
+| **ELF requirement extraction** (parse `.o`, derive requirements) | ✗ | ✗ | ✓ |
+| **Composite feature validation** | ✗ | ✗ | ✓ |
+| **Actionable diagnostics** (remediation steps) | ✗ | ✗ | ✓ |
+| Selective probing (minimize overhead) | Per-function | All-or-nothing | ✓ |
+| Pure Go, no CGO | ✓ | ✗ | ✓ |
+| Usable as a Go library | ✓ | ✗ | ✓ |
 
 \* `bpftool` checks `CONFIG_DEBUG_INFO_BTF` in kernel config but does not verify `/sys/kernel/btf/vmlinux` exists.
 
