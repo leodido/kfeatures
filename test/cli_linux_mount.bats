@@ -19,18 +19,30 @@ setup_file() {
 }
 
 setup() {
-    TMPFS_DIR="$(mktemp -d)"
-    mount -t tmpfs tmpfs "$TMPFS_DIR" || skip "cannot mount tmpfs (sandboxed?): $output"
+    # mktemp may itself fail (rare, e.g. EROFS on /tmp). Bail before mount so
+    # teardown has a sentinel-free state to detect.
+    TMPFS_DIR="$(mktemp -d)" || {
+        TMPFS_DIR=""
+        skip "mktemp -d failed"
+    }
     export TMPFS_DIR
+
+    if ! mount -t tmpfs tmpfs "$TMPFS_DIR"; then
+        # mount failed; leave TMPFS_DIR set so teardown still removes the
+        # empty directory mktemp created.
+        skip "cannot mount tmpfs (sandboxed?)"
+    fi
 }
 
 teardown() {
-    if [[ -n "${TMPFS_DIR:-}" ]] && mountpoint -q "$TMPFS_DIR" 2>/dev/null; then
+    [[ -z "${TMPFS_DIR:-}" ]] && return 0
+    # Unmount only if it actually became a mountpoint. Removal is best-effort
+    # and runs unconditionally so a failed-mount setup still cleans up the
+    # empty directory mktemp left behind.
+    if mountpoint -q "$TMPFS_DIR" 2>/dev/null; then
         umount "$TMPFS_DIR" || true
     fi
-    if [[ -n "${TMPFS_DIR:-}" && -d "$TMPFS_DIR" ]]; then
-        rmdir "$TMPFS_DIR" || true
-    fi
+    [[ -d "$TMPFS_DIR" ]] && rmdir "$TMPFS_DIR" 2>/dev/null || true
 }
 
 # Sanity: tmpfs we just mounted reports the expected filesystem type via stat,
