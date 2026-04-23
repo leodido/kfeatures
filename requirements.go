@@ -18,6 +18,7 @@ import (
 //   - [ProgramTypeRequirement]
 //   - [MapTypeRequirement]
 //   - [ProgramHelperRequirement]
+//   - [MountRequirement]
 type Requirement interface {
 	isRequirement()
 }
@@ -44,6 +45,18 @@ type ProgramHelperRequirement struct {
 	Helper      asm.BuiltinFunc
 }
 
+// MountRequirement requires that Path is mounted with a filesystem whose
+// superblock magic equals Magic. Magic is the raw f_type value the kernel
+// reports via Statfs (e.g. golang.org/x/sys/unix.BPF_FS_MAGIC for bpffs).
+//
+// Use this when [FeatureBPFFS] / [FeatureTraceFS] are too restrictive — for
+// example, bpffs mounted at a non-default path, or any other pseudo-FS the
+// caller depends on (cgroupv2, debugfs, securityfs, tmpfs in tests, ...).
+type MountRequirement struct {
+	Path  string
+	Magic uint32
+}
+
 // RequireProgramType creates a requirement for a program type.
 func RequireProgramType(pt ebpf.ProgramType) ProgramTypeRequirement {
 	return ProgramTypeRequirement{Type: pt}
@@ -62,22 +75,34 @@ func RequireProgramHelper(pt ebpf.ProgramType, helper asm.BuiltinFunc) ProgramHe
 	}
 }
 
+// RequireMount creates a requirement that path is mounted with a filesystem
+// whose superblock magic equals magic.
+//
+// Magic numbers live in golang.org/x/sys/unix (e.g. unix.BPF_FS_MAGIC,
+// unix.TRACEFS_MAGIC, unix.CGROUP2_SUPER_MAGIC). Pass the raw value.
+func RequireMount(path string, magic uint32) MountRequirement {
+	return MountRequirement{Path: path, Magic: magic}
+}
+
 func (Feature) isRequirement()                  {}
 func (FeatureGroup) isRequirement()             {}
 func (ProgramTypeRequirement) isRequirement()   {}
 func (MapTypeRequirement) isRequirement()       {}
 func (ProgramHelperRequirement) isRequirement() {}
+func (MountRequirement) isRequirement()         {}
 
 type requirementSet struct {
 	features       []Feature
 	programTypes   []ebpf.ProgramType
 	mapTypes       []ebpf.MapType
 	programHelpers []ProgramHelperRequirement
+	mounts         []MountRequirement
 
 	seenFeatures       map[Feature]struct{}
 	seenProgramTypes   map[ebpf.ProgramType]struct{}
 	seenMapTypes       map[ebpf.MapType]struct{}
 	seenProgramHelpers map[ProgramHelperRequirement]struct{}
+	seenMounts         map[MountRequirement]struct{}
 }
 
 func normalizeRequirements(required []Requirement) requirementSet {
@@ -86,6 +111,7 @@ func normalizeRequirements(required []Requirement) requirementSet {
 		seenProgramTypes:   map[ebpf.ProgramType]struct{}{},
 		seenMapTypes:       map[ebpf.MapType]struct{}{},
 		seenProgramHelpers: map[ProgramHelperRequirement]struct{}{},
+		seenMounts:         map[MountRequirement]struct{}{},
 	}
 	for _, req := range required {
 		rs.add(req)
@@ -126,5 +152,11 @@ func (rs *requirementSet) add(req Requirement) {
 		}
 		rs.seenProgramHelpers[r] = struct{}{}
 		rs.programHelpers = append(rs.programHelpers, r)
+	case MountRequirement:
+		if _, ok := rs.seenMounts[r]; ok {
+			return
+		}
+		rs.seenMounts[r] = struct{}{}
+		rs.mounts = append(rs.mounts, r)
 	}
 }

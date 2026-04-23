@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `RequireMount(path, magic)`: parameterized requirement that gates on a filesystem being mounted at `path` with a superblock magic equal to `magic`. Magic constants come from `golang.org/x/sys/unix` (e.g. `unix.BPF_FS_MAGIC`, `unix.TRACEFS_MAGIC`, `unix.CGROUP2_SUPER_MAGIC`). Useful for non-default mount paths (e.g. bpffs mounted at `/run/bpf`) or pseudo-filesystems not covered by the built-in `Feature*` gates. Backed by the same internal `checkMount` helper as `FeatureBPFFS` / `FeatureTraceFS`.
+- New `integration` CI job exercises the real `unix.Statfs` / `unix.Mount` paths on `ubuntu-latest` (Go integration tests built with `-tags=integration`, plus a Linux-only bats suite that verifies CLI exit codes against the runner's actual mount state).
+
 ### Fixed
 
 - `Check(FeatureBPFFS)` and `Check(FeatureTraceFS)` now verify the filesystem is actually mounted with the expected superblock magic (`BPF_FS_MAGIC`, `TRACEFS_MAGIC`) instead of only checking that a directory exists at the path. Previously, both gates returned success on any system where `/sys/fs/bpf` (resp. `/sys/kernel/tracing`) existed as a directory — which is the case by default on systemd-based distros even when the corresponding pseudo-filesystem is not mounted. Callers gating on these features (e.g. before pinning maps on bpffs) would silently get a false positive and fail later at `bpf_obj_pin()`. Diagnostic-only fields `SystemFeatures.DebugFS` / `.SecurityFS` keep their previous presence-only semantics.

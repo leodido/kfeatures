@@ -18,6 +18,7 @@ import (
 //   - [Feature] (stable boolean gates)
 //   - [FeatureGroup] (reusable requirement presets)
 //   - [ProgramTypeRequirement], [MapTypeRequirement], [ProgramHelperRequirement]
+//   - [MountRequirement] (filesystem-mounted-with-magic gate)
 //
 // Check is the only gate entrypoint. Keep ProbeWith/WithX for diagnostics-only
 // data collection, not for expressing required readiness conditions.
@@ -79,6 +80,16 @@ func Check(required ...Requirement) error {
 			Feature: fmt.Sprintf("helper %s for program type %s", req.Helper, req.ProgramType),
 			Reason:  reasonForProgramHelperError(req, err),
 			Err:     err,
+		}
+	}
+
+	for _, m := range rs.mounts {
+		if err := checkMount(m.Path, m.Magic); err != nil {
+			return &FeatureError{
+				Feature: fmt.Sprintf("mount %s (magic 0x%x)", m.Path, m.Magic),
+				Reason:  err.Error(),
+				Err:     err,
+			}
 		}
 	}
 
