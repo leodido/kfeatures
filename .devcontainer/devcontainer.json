@@ -1,0 +1,15 @@
+// The Dev Container format allows you to configure your environment.
+// See https://aka.ms/devcontainer.json for more information.
+{
+	"name": "kfeatures",
+	"image": "mcr.microsoft.com/devcontainers/go:1.24-bookworm",
+	"features": {
+		"ghcr.io/devcontainers/features/common-utils:2": {}
+	},
+	"postCreateCommand": "git config core.hooksPath .githooks && go mod download",
+	"customizations": {
+		"vscode": {
+			"extensions": ["golang.go"]
+		}
+	}
+}
