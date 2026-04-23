@@ -241,12 +241,23 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 		sf.JITLimit = probeJITLimit()
 	}
 
-	// Probe filesystem mounts
+	// Probe filesystem mounts.
+	//
+	// TraceFS and BPFFS are gated features (FeatureTraceFS, FeatureBPFFS): a
+	// caller asking "is bpffs ready?" wants to know whether they can pin maps,
+	// not whether some directory exists at /sys/fs/bpf. We therefore verify
+	// the filesystem is actually mounted with the expected superblock magic.
+	//
+	// DebugFS and SecurityFS are diagnostic-only fields (no Feature* gate),
+	// so the looser presence-only check is sufficient for them.
 	if cfg.filesystems {
-		sf.TraceFS = probeFilesystemMount(tracefsPath, tracefsFallbackPath)
-		sf.DebugFS = probeFilesystemMount(debugfsPath)
-		sf.SecurityFS = probeFilesystemMount(securityfsPath)
-		sf.BPFFS = probeFilesystemMount(bpffsPath)
+		sf.TraceFS = probeFilesystemMountedAny(
+			mountCandidate{path: tracefsPath, magic: unix.TRACEFS_MAGIC},
+			mountCandidate{path: tracefsFallbackPath, magic: unix.TRACEFS_MAGIC},
+		)
+		sf.DebugFS = probeFilesystemPresent(debugfsPath)
+		sf.SecurityFS = probeFilesystemPresent(securityfsPath)
+		sf.BPFFS = probeFilesystemMounted(bpffsPath, unix.BPF_FS_MAGIC)
 	}
 
 	// Probe CPU mitigations and JIT-always-on
