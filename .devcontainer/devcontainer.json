@@ -6,7 +6,7 @@
 	"features": {
 		"ghcr.io/devcontainers/features/common-utils:2": {}
 	},
-	"postCreateCommand": "go mod download",
+	"postCreateCommand": "git config core.hooksPath .githooks && go mod download",
 	"customizations": {
 		"vscode": {
 			"extensions": ["golang.go"]
