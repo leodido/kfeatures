@@ -10,6 +10,7 @@ import (
 
 	"github.com/leodido/kfeatures"
 	"github.com/leodido/structcli"
+	"github.com/leodido/structcli/jsonschema"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -33,12 +34,28 @@ It detects program type support, BTF availability, security subsystems (LSM, IMA
 kernel configuration, and process capabilities. Use it for operator diagnostics,
 CI/CD gating, or container runtime validation.`,
 		SilenceUsage: true,
+		// Root needs RunE so structcli can wrap it for --jsonschema=tree
+		// interception. Without RunE, cobra treats root as non-runnable and
+		// short-circuits to Help() before PreRunE fires, preventing the
+		// schema interceptor from running on root invocations.
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
 	}
 
 	root.AddCommand(probeCmd())
 	root.AddCommand(checkCmd())
 	root.AddCommand(configCmd())
 	root.AddCommand(versionCmd())
+
+	// --jsonschema (bare: this command, =tree: full subtree). Lets agents
+	// and tooling discover the CLI's flag/command surface without scraping
+	// --help. Setup must happen on the root command and after AddCommand
+	// so subcommands are wrapped.
+	if err := structcli.SetupJSONSchema(root, jsonschema.Options{}); err != nil {
+		fmt.Fprintf(os.Stderr, "setup --jsonschema: %v\n", err)
+		os.Exit(1)
+	}
 
 	if err := root.Execute(); err != nil {
 		os.Exit(1)
