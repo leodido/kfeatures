@@ -33,8 +33,8 @@ Neither tells you whether your tool can **actually run**. For example, BPF LSM r
 | Capability | `cilium/ebpf/features` | `bpftool feature probe` | **`kfeatures`** |
 |---|:---:|:---:|:---:|
 | BPF program type probes | ✓ | ✓ | ✓ |
-| BPF map type / helper probes | ✓ | ✓ | ✓ (as parameterized requirements in `Check(...)`) |
-| **BTF availability** (`/sys/kernel/btf/vmlinux`) | ✗ | ✗\* | ✓ |
+| BPF map type / helper probes | ✓ | ✓ | ✓ † |
+| **BTF availability** (`/sys/kernel/btf/vmlinux`) | ✗ | ✗ * | ✓ |
 | **Kernel config parsing** (any `CONFIG_*`, =y/=m) | ✗ | ✓ | ✓ |
 | **Active LSM list** (`/sys/kernel/security/lsm`) | ✗ | ✗ | ✓ |
 | **BPF LSM enabled** (config + boot params + program type) | ✗ | ✗ | ✓ |
@@ -46,11 +46,14 @@ Neither tells you whether your tool can **actually run**. For example, BPF LSM r
 | **ELF requirement extraction** (parse `.o`, derive requirements) | ✗ | ✗ | ✓ |
 | **Composite feature validation** | ✗ | ✗ | ✓ |
 | **Actionable diagnostics** (remediation steps) | ✗ | ✗ | ✓ |
-| Selective probing (minimize overhead) | Per-function | All-or-nothing | ✓ |
+| Selective probing (minimize overhead) | ✓ ‡ | ✗ § | ✓ |
 | Pure Go, no CGO | ✓ | ✗ | ✓ |
 | Usable as a Go library | ✓ | ✗ | ✓ |
 
-\* `bpftool` checks `CONFIG_DEBUG_INFO_BTF` in kernel config but does not verify `/sys/kernel/btf/vmlinux` exists.
+<sup>\* `bpftool` checks `CONFIG_DEBUG_INFO_BTF` in the kernel config but does not verify `/sys/kernel/btf/vmlinux` exists.</sup>
+<sup>† Exposed in `kfeatures` as parameterized requirements (`RequireMapType`, `RequireProgramHelper`) consumed by `Check(...)`.</sup>
+<sup>‡ `cilium/ebpf/features` is per-function: callers invoke individual probe functions on demand.</sup>
+<sup>§ `bpftool feature probe` runs the full probe set on every invocation.</sup>
 
 Other Go projects ([libbpfgo](https://github.com/aquasecurity/libbpfgo), [Tetragon](https://github.com/cilium/tetragon), [Falco libs](https://github.com/falcosecurity/libs)) have some feature detection built in, but none is a standalone reusable library. They are either CGO-dependent, tightly coupled to their parent project, or written in C/C++.
 
