@@ -61,10 +61,9 @@ func TestRequireMountIntegration_Tmpfs(t *testing.T) {
 }
 
 func TestRequireMountIntegration_MissingPath(t *testing.T) {
-	if os.Geteuid() != 0 {
-		t.Skip("integration job runs as root; non-root execution skipped for parity")
-	}
-
+	// No root check: the //go:build integration tag scopes this test to the
+	// dedicated CI job, and the assertion (Statfs on a nonexistent path) does
+	// not require any privilege.
 	err := Check(RequireMount("/nonexistent/integration/path", unix.TMPFS_MAGIC))
 	if err == nil {
 		t.Fatal("Check(RequireMount(missing)) = nil, want error")
