@@ -1,10 +1,16 @@
 # kfeatures
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/leodido/kfeatures.svg)](https://pkg.go.dev/github.com/leodido/kfeatures)
+[![CI](https://github.com/leodido/kfeatures/actions/workflows/ci.yml/badge.svg)](https://github.com/leodido/kfeatures/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/leodido/kfeatures?sort=semver)](https://github.com/leodido/kfeatures/releases/latest)
+[![Go version](https://img.shields.io/github/go-mod/go-version/leodido/kfeatures)](go.mod)
+[![License](https://img.shields.io/github/license/leodido/kfeatures)](LICENSE)
+
 > Can my eBPF tool actually run here, and if not, exactly what needs to change?
 
-kfeatures is a pure-Go library that answers this question.
+`kfeatures` is a pure-Go library that answers this question.
 
-It probes kernel capabilities at runtime and returns actionable diagnostics: not just "unsupported", but *why* and *how to fix it*.
+It probes kernel capabilities at runtime and returns actionable diagnostics: not just *unsupported*, but **why** and **how to fix it**.
 
 ```go
 if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err != nil {
@@ -33,8 +39,11 @@ Neither tells you whether your tool can **actually run**. For example, BPF LSM r
 | **Active LSM list** (`/sys/kernel/security/lsm`) | ❌ | ❌ | ✅ |
 | **BPF LSM enabled** (config + boot params + program type) | ❌ | ❌ | ✅ |
 | **IMA detection** (LSM list + securityfs directory) | ❌ | ❌ | ✅ |
+| **IMA active measurement** (runtime policy detection) | ❌ | ❌ | ✅ |
 | **Process capabilities** (CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON) | ❌ | ❌ | ✅ |
 | **Unprivileged BPF status** | ❌ | ✅ | ✅ |
+| **Mount-state gates** (bpffs/tracefs/custom paths via superblock magic) | ❌ | ❌ | ✅ |
+| **ELF requirement extraction** (parse `.o`, derive requirements) | ❌ | ❌ | ✅ |
 | **Composite feature validation** | ❌ | ❌ | ✅ |
 | **Actionable diagnostics** (remediation steps) | ❌ | ❌ | ✅ |
 | Selective probing (minimize overhead) | Per-function | All-or-nothing | ✅ |
@@ -51,46 +60,6 @@ Other Go projects ([libbpfgo](https://github.com/aquasecurity/libbpfgo), [Tetrag
 go get github.com/leodido/kfeatures
 ```
 
-## API model
-
-`kfeatures` has two API families with different purposes:
-
-| Intent | API family | Notes |
-|---|---|---|
-| Validate required capabilities (pass/fail) | `Check(...)` | Returns actionable errors for missing requirements |
-| Collect diagnostics/reporting data | `Probe()`, `ProbeWith(WithX...)` | `WithX` selects what to collect; it does not define requirements |
-
-Requirement items consumed by `Check(...)`:
-
-- `Feature` (stable boolean capability)
-- `FeatureGroup` (reusable preset of requirements)
-- `RequireProgramType(...)`, `RequireMapType(...)`, `RequireProgramHelper(...)` (parameterized workload requirements)
-- `RequireMount(path, magic)` (parameterized filesystem-mount gate; magic comes from `golang.org/x/sys/unix`, e.g. `unix.BPF_FS_MAGIC`)
-- `FromELF(path)`: producer of requirement items in the same model (program/map types + helper-per-program requirements)
-
-`FromELF` is parser-only and available cross-platform; runtime probing/checking remains Linux-specific.
-
-Feature-addition review checklist:
-
-1. Is the signal a deterministic run/block requirement with actionable remediation text?
-2. If no, keep it probe-only behind `ProbeWith(WithX...)`.
-3. If yes and boolean, model it as `Feature` and wire `Result(...)`, `Diagnose(...)`, CLI mapping, and tests.
-4. If yes and parameterized, model it as a requirement item type consumed by `Check(...)` (avoid enum explosion).
-5. Do not add new top-level gate entrypoints (`CheckX`, `CheckGroup`, etc.): keep one gate API (`Check(...)`).
-6. Do not use `WithX` as requirements: `WithX` remains probe-scope selection only.
-
-Current classification snapshot:
-
-- Gated via `Check(...)`: `Feature*` readiness checks plus parameterized program/map/helper requirements.
-- Probe-only via `ProbeWith(WithX...)`: contextual/descriptive signals without stable universal policy (for example `DebugFS`, `SecurityFS`, `InInitPIDNS`, raw mitigation strings, raw active LSM list, kernel version).
-
-`FromELF` contract:
-
-1. Public API is fixed to `FromELF(path string) (FeatureGroup, error)`.
-2. Extraction output must be deterministic: deduplicated and stably ordered.
-3. Extraction scope includes program types, map types, and helper-per-program requirements from direct helper calls.
-4. Unknown/unsupported ELF kinds are fail-closed (return error, do not silently ignore).
-
 ## Usage
 
 ### Quick check
@@ -98,7 +67,12 @@ Current classification snapshot:
 Validate that required kernel features are available:
 
 ```go
-import "github.com/leodido/kfeatures"
+import (
+    "errors"
+    "log"
+
+    "github.com/leodido/kfeatures"
+)
 
 if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err != nil {
     var fe *kfeatures.FeatureError
@@ -108,7 +82,9 @@ if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err !=
 }
 ```
 
-Mixed requirements example (feature enums + parameterized workload requirements):
+### Mixed requirements
+
+Combine `Feature` enums with parameterized workload requirements:
 
 ```go
 import (
@@ -117,17 +93,17 @@ import (
     "github.com/leodido/kfeatures"
 )
 
-if err := kfeatures.Check(
+err := kfeatures.Check(
     kfeatures.FeatureBTF,
     kfeatures.RequireProgramType(ebpf.XDP),
     kfeatures.RequireMapType(ebpf.Hash),
     kfeatures.RequireProgramHelper(ebpf.XDP, asm.FnMapLookupElem),
-); err != nil {
-    log.Fatal(err)
-}
+)
 ```
 
-Custom mount-path gate (e.g. bpffs mounted somewhere other than `/sys/fs/bpf`):
+### Custom mount paths (`RequireMount`)
+
+Gate on a filesystem mounted at an arbitrary path with the expected superblock magic — useful when bpffs lives somewhere other than `/sys/fs/bpf`:
 
 ```go
 import (
@@ -135,16 +111,60 @@ import (
     "golang.org/x/sys/unix"
 )
 
-if err := kfeatures.Check(
+err := kfeatures.Check(
     kfeatures.RequireMount("/run/bpf", unix.BPF_FS_MAGIC),
-); err != nil {
+)
+```
+
+Magic constants come from `golang.org/x/sys/unix` (e.g. `unix.BPF_FS_MAGIC`, `unix.TRACEFS_MAGIC`, `unix.CGROUP2_SUPER_MAGIC`).
+
+### Reusable presets (`FeatureGroup`)
+
+`FeatureGroup` packages a set of requirements as a single value you can pass anywhere a `Requirement` is accepted:
+
+```go
+var TracingTool = kfeatures.FeatureGroup{
+    kfeatures.FeatureBTF,
+    kfeatures.FeatureKprobeMulti,
+    kfeatures.RequireProgramType(ebpf.Kprobe),
+}
+
+if err := kfeatures.Check(TracingTool); err != nil {
     log.Fatal(err)
+}
+```
+
+### Extract requirements from a compiled object (`FromELF`)
+
+Point `FromELF` at an eBPF `.o` and get back a `FeatureGroup` describing its program types, map types, and helper-per-program requirements — directly consumable by `Check`:
+
+```go
+reqs, err := kfeatures.FromELF("./bpf/probe.o")
+if err != nil {
+    log.Fatal(err)
+}
+if err := kfeatures.Check(reqs); err != nil {
+    log.Fatalf("kernel cannot run probe.o: %v", err)
+}
+```
+
+Output is deterministic (deduplicated, stably ordered). Unknown ELF kinds fail closed.
+
+### Render remediation (`Diagnose`)
+
+`Check` returns the diagnosis for the first failing feature. To inspect any feature against a single probe snapshot, call `Diagnose` directly:
+
+```go
+sf, _ := kfeatures.Probe()
+if !sf.BPFLSMEnabled.Supported {
+    fmt.Println(sf.Diagnose(kfeatures.FeatureBPFLSM))
+    // CONFIG_BPF_LSM=y but 'bpf' not in active LSM list; add lsm=...,bpf to kernel boot params
 }
 ```
 
 ### Full probe
 
-Probe all features for diagnostics:
+Probe all features for diagnostics and reporting:
 
 ```go
 sf, err := kfeatures.Probe()
@@ -154,7 +174,7 @@ if err != nil {
 fmt.Println(sf)
 ```
 
-Output:
+Sample output (truncated):
 
 ```
 Kernel: 6.1.0-generic
@@ -163,8 +183,6 @@ Program Types:
   LSM: yes
   kprobe: yes
   kprobe.multi: yes
-  tracepoint: yes
-  fentry: yes
 
 Core:
   BTF: yes
@@ -175,18 +193,12 @@ Security Subsystems:
   IMA directory: yes
   Active LSMs: lockdown, capability, yama, apparmor, bpf
 
-Capabilities:
-  CAP_BPF: yes
-  CAP_SYS_ADMIN: yes
-  CAP_PERFMON: yes
-  Unprivileged BPF disabled: yes
-
-Kernel Config:
-  CONFIG_BPF_LSM: y
-  CONFIG_IMA: y
-  CONFIG_DEBUG_INFO_BTF: y
-  CONFIG_FPROBE: y
+Filesystems:
+  tracefs: yes
+  bpffs: yes
 ```
+
+Individual fields are typed and inspectable programmatically — see [`SystemFeatures`](https://pkg.go.dev/github.com/leodido/kfeatures#SystemFeatures).
 
 ### Selective probing
 
@@ -200,48 +212,21 @@ sf, err := kfeatures.ProbeWith(
 )
 ```
 
+`WithX` options select probe scope. They do not define requirements — use `Check(...)` for gating.
+
 ## CLI
 
-A CLI tool is included for operator diagnostics and CI/CD gating:
+A CLI is included for operator diagnostics and CI/CD gating:
 
 ```bash
 go install github.com/leodido/kfeatures/cmd/kfeatures@latest
 ```
 
 ```bash
-# Probe all features
-kfeatures probe
-
-# Check specific requirements (exit 0 if met, 1 if not)
-kfeatures check --require bpf-lsm,btf,cap-bpf
-
-# JSON output
-kfeatures probe --json
-
-# Display kernel config
-kfeatures config
-```
-
-JSON output example:
-
-```json
-{
-  "LSMProgramType": {"Supported": true},
-  "Kprobe": {"Supported": true},
-  "KprobeMulti": {"Supported": true},
-  "Tracepoint": {"Supported": true},
-  "Fentry": {"Supported": true},
-  "BTF": {"Supported": true},
-  "BPFLSMEnabled": {"Supported": true},
-  "ActiveLSMs": ["lockdown", "capability", "yama", "apparmor", "bpf"],
-  "IMAEnabled": {"Supported": false},
-  "IMADirectory": {"Supported": true},
-  "HasCapBPF": {"Supported": true},
-  "HasCapSysAdmin": {"Supported": true},
-  "HasCapPerfmon": {"Supported": true},
-  "UnprivilegedBPFDisabled": {"Supported": true},
-  "KernelVersion": "6.1.0-generic"
-}
+kfeatures probe                                    # probe all features
+kfeatures check --require bpf-lsm,btf,cap-bpf      # exit 0 if met, 1 otherwise
+kfeatures probe --json                             # JSON output
+kfeatures config                                   # display kernel config
 ```
 
 ## What it detects
@@ -250,21 +235,36 @@ JSON output example:
 |---|---|
 | Program types | LSM, kprobe, kprobe.multi, tracepoint, fentry |
 | Core | BTF availability (CO-RE) |
-| Security | BPF LSM enabled, IMA enabled, active LSM list |
+| Security | BPF LSM enabled, IMA enabled, IMA active measurement, active LSM list |
 | Capabilities and runtime gates | CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON, unprivileged BPF disabled, BPF stats enabled |
 | Syscalls | `bpf()`, `perf_event_open()` |
 | JIT | enabled, hardened, kallsyms, memory limit, `CONFIG_BPF_JIT_ALWAYS_ON` |
-| Filesystems | tracefs, debugfs, securityfs, bpffs (gated `tracefs` and `bpffs` checks verify the filesystem is mounted with the expected superblock magic) |
+| Filesystems | tracefs, debugfs, securityfs, bpffs (gated `tracefs`/`bpffs` checks verify the filesystem is mounted with the expected superblock magic) |
+| Custom mount gates | any path + superblock magic via `RequireMount` |
 | Namespaces | initial user namespace, initial PID namespace |
 | Parameterized workload requirements | program type, map type, helper-per-program-type via requirement items |
+| ELF-derived requirements | program/map types and helper-per-program requirements via `FromELF` |
 | Mitigation context | Spectre v1/v2 vulnerability status |
-| Kernel config | CONFIG_BPF_LSM, CONFIG_IMA, CONFIG_DEBUG_INFO_BTF, CONFIG_FPROBE, any CONFIG_* |
+| Kernel config | `CONFIG_BPF_LSM`, `CONFIG_IMA`, `CONFIG_DEBUG_INFO_BTF`, `CONFIG_FPROBE`, any `CONFIG_*` |
+
+## Stability
+
+Pre-1.0. The public API may change between minor versions; breaking changes are
+called out explicitly in [CHANGELOG.md](CHANGELOG.md). The `FromELF` contract
+(signature, determinism, fail-closed semantics) is frozen — see
+[CONTRIBUTING.md](CONTRIBUTING.md#fromelf-contract).
 
 ## Requirements
 
-- Linux (feature probing uses Linux-specific syscalls and sysfs)
-- Some probes require `CAP_BPF` or `CAP_SYS_ADMIN`
+- Linux for runtime probing/checking (uses Linux-specific syscalls and sysfs).
+- `FromELF` is parser-only and works on any platform.
+- Some probes require `CAP_BPF` or `CAP_SYS_ADMIN`.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the API model, the
+feature-addition checklist, and the development workflow.
 
 ## License
 
-Apache License 2.0
+Apache License 2.0 — see [LICENSE](LICENSE).
