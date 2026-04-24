@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- CLI: `--jsonschema` persistent flag. `kfeatures --jsonschema` (or `kfeatures <subcommand> --jsonschema`) prints a JSON Schema describing the current command's flags; `kfeatures --jsonschema=tree` walks the entire subtree. Lets agents and automation tooling discover the CLI's flag/command surface without scraping `--help`. Backed by `structcli.SetupJSONSchema`.
+
 ### Changed
 
 - README restructured around user-facing usage: badges, expanded usage section with `Diagnose`, `FromELF`, `FeatureGroup`, and `RequireMount` examples, stability statement, and updated comparison/detect tables.
 - API model, feature-addition review checklist, `FromELF` contract, and classification snapshot moved from `README.md` to a new `CONTRIBUTING.md` (governance content kept; relocated to its proper audience).
 - Bumped `structcli` from `v0.11.0` to `v0.16.1`. No behavioral change; pure dependency upgrade. New structcli capabilities (`flagkit.Output`, `SetupJSONSchema`, `exitcode`, `SetupHelpTopics`, declarative enum registration) are deferred to follow-up PRs.
+- CLI: root command now has a `RunE` that defers to `Help()`. Bare `kfeatures` still prints help and exits 0 (unchanged exit behavior); the change is required so structcli's `--jsonschema` interceptor fires on root invocations.
 
 ## [0.4.0] — 2026-04-23
 

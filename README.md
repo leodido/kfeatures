@@ -230,6 +230,7 @@ kfeatures probe                                    # probe all features
 kfeatures check --require bpf-lsm,btf,cap-bpf      # exit 0 if met, 1 otherwise
 kfeatures probe --json                             # JSON output
 kfeatures config                                   # display kernel config
+kfeatures --jsonschema=tree                        # dump JSON Schema for the full command tree (agents/tooling)
 ```
 
 ## What it detects
