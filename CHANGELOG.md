@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API model, feature-addition review checklist, `FromELF` contract, and classification snapshot moved from `README.md` to a new `CONTRIBUTING.md` (governance content kept; relocated to its proper audience).
 - Bumped `structcli` from `v0.11.0` to `v0.16.1`. No behavioral change; pure dependency upgrade. New structcli capabilities (`flagkit.Output`, `SetupJSONSchema`, `exitcode`, `SetupHelpTopics`, declarative enum registration) are deferred to follow-up PRs.
 - Bumped `structcli` from `v0.16.1` to `v0.17.0`. No behavioral change; pure dependency upgrade. New `Bind` / `Setup` / `ExecuteC` ergonomics and AI-native capabilities (`WithMCP`, `WithFlagErrors`, structured errors, semantic exit codes) are adopted in follow-up PRs.
+- CLI: migrated to `structcli.Bind` + `structcli.Setup` + `structcli.ExecuteC`. Per-subcommand `Attach` methods, manual `Define`/`Unmarshal` calls, and `PreRunE` wiring are gone; flag definition, viper binding, env binding, and unmarshal now run through structcli's auto-bind pipeline. Behaviour-neutral: error messages and exit codes are unchanged. AI-native error handling (`ExecuteOrExit`, structured errors, semantic exit codes) lands in a follow-up PR.
 - CLI: root command now has a `RunE` that defers to `Help()`. Bare `kfeatures` still prints help and exits 0 (unchanged exit behavior); the change is required so structcli's `--jsonschema` interceptor fires on root invocations.
 
 ## [0.4.0] — 2026-04-23

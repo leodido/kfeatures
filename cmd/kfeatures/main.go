@@ -48,16 +48,27 @@ CI/CD gating, or container runtime validation.`,
 	root.AddCommand(configCmd())
 	root.AddCommand(versionCmd())
 
-	// --jsonschema (bare: this command, =tree: full subtree). Lets agents
-	// and tooling discover the CLI's flag/command surface without scraping
-	// --help. Setup must happen on the root command and after AddCommand
-	// so subcommands are wrapped.
-	if err := structcli.SetupJSONSchema(root, jsonschema.Options{}); err != nil {
-		fmt.Fprintf(os.Stderr, "setup --jsonschema: %v\n", err)
+	// Setup orchestrates the optional structcli capabilities. Today only
+	// --jsonschema is wired in; AI-native pieces (WithMCP, WithFlagErrors,
+	// structured errors, semantic exit codes) follow in a separate PR.
+	// Setup must run after AddCommand so subcommands are wrapped.
+	if err := structcli.Setup(root,
+		structcli.WithJSONSchema(jsonschema.Options{}),
+	); err != nil {
+		fmt.Fprintf(os.Stderr, "setup: %v\n", err)
 		os.Exit(1)
 	}
 
-	if err := root.Execute(); err != nil {
+	// ExecuteC drives the auto-bind pipeline (config → unmarshal → validate)
+	// for every command registered through structcli.Bind. It replaces
+	// per-subcommand PreRunE wiring and is required when Bind is used.
+	//
+	// ExecuteC silences cobra's own error/usage output so callers can
+	// render their own. PR 3 will swap this in for ExecuteOrExit (with
+	// structured JSON errors and semantic exit codes); for now we mimic
+	// cobra's pre-refactor behaviour to keep this PR behaviour-neutral.
+	if _, err := structcli.ExecuteC(root); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 }
@@ -67,19 +78,12 @@ type ProbeOptions struct {
 	JSON bool `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
-func (o *ProbeOptions) Attach(c *cobra.Command) error {
-	return structcli.Define(c, o)
-}
-
 func probeCmd() *cobra.Command {
 	opts := &ProbeOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "probe",
 		Short: "Probe all kernel features and display results",
-		PreRunE: func(c *cobra.Command, args []string) error {
-			return structcli.Unmarshal(c, opts)
-		},
 		RunE: func(c *cobra.Command, args []string) error {
 			sf, err := kfeatures.ProbeNoCache()
 			if err != nil {
@@ -95,7 +99,7 @@ func probeCmd() *cobra.Command {
 		},
 	}
 
-	if err := opts.Attach(cmd); err != nil {
+	if err := structcli.Bind(cmd, opts); err != nil {
 		panic(err)
 	}
 	return cmd
@@ -107,9 +111,9 @@ type CheckOptions struct {
 	JSON    bool                `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
-func (o *CheckOptions) Attach(c *cobra.Command) error {
-	return structcli.Define(c, o)
-}
+// DefineRequire / DecodeRequire / CompleteRequire are the structcli custom-flag
+// triad. structcli.Bind discovers them by reflection on *CheckOptions; no
+// explicit Attach method is needed.
 
 func (o *CheckOptions) DefineRequire(name, short, descr string, structField reflect.StructField, fieldValue reflect.Value) (pflag.Value, string) {
 	fieldPtr := fieldValue.Addr().Interface().(*featureRequirements)
@@ -170,9 +174,6 @@ func checkCmd() *cobra.Command {
 		Use:   "check",
 		Short: "Check specific kernel feature requirements",
 		Long:  checkLongDescription(),
-		PreRunE: func(c *cobra.Command, args []string) error {
-			return structcli.Unmarshal(c, opts)
-		},
 		RunE: func(c *cobra.Command, args []string) error {
 			if len(opts.Require) == 0 {
 				return fmt.Errorf("no features specified")
@@ -208,7 +209,7 @@ func checkCmd() *cobra.Command {
 		},
 	}
 
-	if err := opts.Attach(cmd); err != nil {
+	if err := structcli.Bind(cmd, opts); err != nil {
 		panic(err)
 	}
 	return cmd
@@ -219,19 +220,12 @@ type ConfigOptions struct {
 	JSON bool `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
-func (o *ConfigOptions) Attach(c *cobra.Command) error {
-	return structcli.Define(c, o)
-}
-
 func configCmd() *cobra.Command {
 	opts := &ConfigOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Display parsed kernel configuration",
-		PreRunE: func(c *cobra.Command, args []string) error {
-			return structcli.Unmarshal(c, opts)
-		},
 		RunE: func(c *cobra.Command, args []string) error {
 			sf, err := kfeatures.ProbeWith(kfeatures.WithKernelConfig())
 			if err != nil {
@@ -260,7 +254,7 @@ func configCmd() *cobra.Command {
 		},
 	}
 
-	if err := opts.Attach(cmd); err != nil {
+	if err := structcli.Bind(cmd, opts); err != nil {
 		panic(err)
 	}
 	return cmd
