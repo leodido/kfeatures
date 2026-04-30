@@ -6,7 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/cilium/ebpf v0.20.0
-	github.com/leodido/structcli v0.16.1
+	github.com/leodido/structcli v0.17.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/sys v0.38.0
