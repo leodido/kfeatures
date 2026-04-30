@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README restructured around user-facing usage: badges, expanded usage section with `Diagnose`, `FromELF`, `FeatureGroup`, and `RequireMount` examples, stability statement, and updated comparison/detect tables.
 - API model, feature-addition review checklist, `FromELF` contract, and classification snapshot moved from `README.md` to a new `CONTRIBUTING.md` (governance content kept; relocated to its proper audience).
 - Bumped `structcli` from `v0.11.0` to `v0.16.1`. No behavioral change; pure dependency upgrade. New structcli capabilities (`flagkit.Output`, `SetupJSONSchema`, `exitcode`, `SetupHelpTopics`, declarative enum registration) are deferred to follow-up PRs.
+- Bumped `structcli` from `v0.16.1` to `v0.17.0`. No behavioral change; pure dependency upgrade. New `Bind` / `Setup` / `ExecuteC` ergonomics and AI-native capabilities (`WithMCP`, `WithFlagErrors`, structured errors, semantic exit codes) are adopted in follow-up PRs.
 - CLI: root command now has a `RunE` that defers to `Help()`. Bare `kfeatures` still prints help and exits 0 (unchanged exit behavior); the change is required so structcli's `--jsonschema` interceptor fires on root invocations.
 
 ## [0.4.0] — 2026-04-23
