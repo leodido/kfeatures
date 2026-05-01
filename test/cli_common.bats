@@ -68,7 +68,68 @@ setup_file() {
 @test "check: legacy alias is rejected" {
     run "$KFEATURES_BIN" check --require bpffs
     assert_failure
-    assert_output --partial 'unknown feature: "bpffs"'
+    # structcli wraps the pflag error in a JSON envelope, so the original
+    # quoted feature name is JSON-escaped. Match the escaped form.
+    assert_output --partial 'unknown feature: \"bpffs\"'
+}
+
+# --- structured errors (structcli WithFlagErrors + ExecuteOrExit) ---
+#
+# Invocation errors (bad/missing/unknown flags, unknown subcommands) are
+# emitted as a single JSON line on stderr with a semantic exit code from
+# the structcli exitcode package. These assertions lock the contract so
+# downstream agents can rely on it.
+
+@test "errors: missing required flag emits structured JSON with exit code 10" {
+    run "$KFEATURES_BIN" check
+    [[ "$status" -eq 10 ]]
+    echo "$output" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+assert d['error'] == 'missing_required_flag', d
+assert d['exit_code'] == 10, d
+assert d['flag'] == 'require', d
+assert d['command'] == 'kfeatures check', d
+"
+}
+
+@test "errors: unknown flag emits structured JSON with exit code 12" {
+    run "$KFEATURES_BIN" probe --bogus
+    [[ "$status" -eq 12 ]]
+    echo "$output" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+assert d['error'] == 'unknown_flag', d
+assert d['exit_code'] == 12, d
+assert d['flag'] == 'bogus', d
+"
+}
+
+@test "errors: invalid flag value emits structured JSON with exit code 11" {
+    run "$KFEATURES_BIN" check --require bpffs
+    [[ "$status" -eq 11 ]]
+    echo "$output" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+assert d['error'] == 'invalid_flag_value', d
+assert d['exit_code'] == 11, d
+assert d['flag'] == 'require', d
+assert d['got'] == 'bpffs', d
+"
+}
+
+@test "errors: unknown subcommand emits structured JSON with exit code 14" {
+    run "$KFEATURES_BIN" wat
+    [[ "$status" -eq 14 ]]
+    echo "$output" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+assert d['error'] == 'unknown_command', d
+assert d['exit_code'] == 14, d
+assert d['got'] == 'wat', d
+assert 'check' in d['available'], d
+assert 'probe' in d['available'], d
+"
 }
 
 @test "completion: check require suggests feature values" {
