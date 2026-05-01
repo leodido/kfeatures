@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/leodido/kfeatures"
 	"github.com/leodido/structcli"
 	"github.com/leodido/structcli/jsonschema"
+	structclimcp "github.com/leodido/structcli/mcp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -48,15 +50,45 @@ CI/CD gating, or container runtime validation.`,
 	root.AddCommand(configCmd())
 	root.AddCommand(versionCmd())
 
-	// Setup orchestrates the optional structcli capabilities. WithFlagErrors
-	// produces typed FlagError values for cobra/pflag misuse so HandleError
-	// classifies them with semantic exit codes (10/11/12/15) instead of the
-	// fallback Error=1. WithJSONSchema keeps the discovery surface from PR 1.
-	// MCP wiring lands in a follow-up PR. Setup must run after AddCommand so
-	// subcommands are wrapped.
+	// Setup orchestrates the optional structcli capabilities:
+	//   * WithJSONSchema  — `--jsonschema` discovery surface (PR 1).
+	//   * WithFlagErrors  — typed FlagError values so HandleError classifies
+	//                       cobra/pflag misuse with semantic exit codes
+	//                       (10/11/12/15) instead of the Error=1 fallback.
+	//   * WithMCP         — `--mcp` flag exposes every runnable leaf command
+	//                       as an MCP tool over stdio. Each subcommand
+	//                       becomes a callable tool whose schema mirrors the
+	//                       cobra flag set; agents introspect via tools/list
+	//                       and invoke via tools/call without scraping
+	//                       --help. Tool name uses the command path with `-`
+	//                       as separator (only relevant once we have nested
+	//                       subcommands; today the names are just `probe`,
+	//                       `check`, `config`, `version`).
+	//                       `version` and `completion` are excluded: the
+	//                       former is build-metadata best surfaced as a
+	//                       server-info field, and the latter is a shell
+	//                       integration with no agent value.
+	// Setup must run after AddCommand so subcommands are wrapped.
 	if err := structcli.Setup(root,
 		structcli.WithJSONSchema(jsonschema.Options{}),
 		structcli.WithFlagErrors(),
+		structcli.WithMCP(structclimcp.Options{
+			Version: mcpServerVersion(),
+			// Exclude entries match exact tool names OR exact full
+			// command paths. Cobra auto-generates `completion <shell>`
+			// leaves (one per supported shell), so we exclude both the
+			// parent path and each leaf tool name; structcli's MCP
+			// registry never sees the parent because it only exposes
+			// runnable leaves, but listing the leaves explicitly is
+			// future-proof if cobra adds a new shell.
+			Exclude: []string{
+				"version",
+				"completion-bash",
+				"completion-zsh",
+				"completion-fish",
+				"completion-powershell",
+			},
+		}),
 	); err != nil {
 		fmt.Fprintf(os.Stderr, "setup: %v\n", err)
 		os.Exit(1)
@@ -89,10 +121,10 @@ func probeCmd() *cobra.Command {
 			}
 
 			if opts.JSON {
-				return printJSON(sf)
+				return printJSON(c.OutOrStdout(), sf)
 			}
 
-			fmt.Print(sf)
+			fmt.Fprint(c.OutOrStdout(), sf)
 			return nil
 		},
 	}
@@ -191,16 +223,32 @@ func checkCmd() *cobra.Command {
 				// overwrite the verdict with a generic structured-error
 				// JSON. Other errors (probing, parsing) fall through to
 				// structcli for classification.
+				//
+				// Streams go through cmd.OutOrStdout / cmd.ErrOrStderr so
+				// MCP mode (which redirects them into per-call buffers
+				// captured into the JSON-RPC response) sees the verdict
+				// instead of having it leak to the host stdio.
 				var fe *kfeatures.FeatureError
 				if errors.As(err, &fe) {
+					if inMCPMode(c) {
+						// Under MCP the host receives the structcli error
+						// envelope (HandleError writes it; the MCP layer
+						// wraps it as content with isError=true) and any
+						// stdout/stderr we write here is discarded. Skip
+						// the CLI-only formatting and return the typed
+						// error so the message reaches the agent verbatim.
+						// os.Exit would terminate the MCP server for the
+						// host and break subsequent tools/call requests.
+						return fe
+					}
 					if opts.JSON {
-						_ = printJSON(map[string]any{
+						_ = printJSON(c.OutOrStdout(), map[string]any{
 							"ok":      false,
 							"feature": fe.Feature,
 							"reason":  fe.Reason,
 						})
 					} else {
-						fmt.Fprintf(os.Stderr, "FAIL: %s — %s\n", fe.Feature, fe.Reason)
+						fmt.Fprintf(c.ErrOrStderr(), "FAIL: %s — %s\n", fe.Feature, fe.Reason)
 					}
 					os.Exit(1)
 				}
@@ -208,9 +256,9 @@ func checkCmd() *cobra.Command {
 			}
 
 			if opts.JSON {
-				return printJSON(map[string]any{"ok": true})
+				return printJSON(c.OutOrStdout(), map[string]any{"ok": true})
 			}
-			fmt.Println("OK: all requirements satisfied")
+			fmt.Fprintln(c.OutOrStdout(), "OK: all requirements satisfied")
 			return nil
 		},
 	}
@@ -239,12 +287,16 @@ func configCmd() *cobra.Command {
 			}
 
 			if sf.KernelConfig == nil {
-				fmt.Fprintln(os.Stderr, "kernel config not available")
+				fmt.Fprintln(c.ErrOrStderr(), "kernel config not available")
+				if inMCPMode(c) {
+					return errors.New("kernel config not available")
+				}
 				os.Exit(1)
 			}
 
+			out := c.OutOrStdout()
 			if opts.JSON {
-				return printJSON(map[string]any{
+				return printJSON(out, map[string]any{
 					"CONFIG_BPF_LSM":        sf.KernelConfig.BPFLSM.String(),
 					"CONFIG_IMA":            sf.KernelConfig.IMA.String(),
 					"CONFIG_DEBUG_INFO_BTF": sf.KernelConfig.BTF.String(),
@@ -252,10 +304,10 @@ func configCmd() *cobra.Command {
 				})
 			}
 
-			fmt.Printf("CONFIG_BPF_LSM:        %s\n", sf.KernelConfig.BPFLSM)
-			fmt.Printf("CONFIG_IMA:            %s\n", sf.KernelConfig.IMA)
-			fmt.Printf("CONFIG_DEBUG_INFO_BTF: %s\n", sf.KernelConfig.BTF)
-			fmt.Printf("CONFIG_FPROBE:         %s\n", sf.KernelConfig.KprobeMulti)
+			fmt.Fprintf(out, "CONFIG_BPF_LSM:        %s\n", sf.KernelConfig.BPFLSM)
+			fmt.Fprintf(out, "CONFIG_IMA:            %s\n", sf.KernelConfig.IMA)
+			fmt.Fprintf(out, "CONFIG_DEBUG_INFO_BTF: %s\n", sf.KernelConfig.BTF)
+			fmt.Fprintf(out, "CONFIG_FPROBE:         %s\n", sf.KernelConfig.KprobeMulti)
 			return nil
 		},
 	}
@@ -266,38 +318,65 @@ func configCmd() *cobra.Command {
 	return cmd
 }
 
+// mcpServerVersion returns the version reported in the MCP initialize
+// response. Mirrors what `kfeatures version` prints so MCP clients can
+// correlate tool output with build metadata. Falls back to "dev" when
+// built without ldflags (plain `go build`), matching the human-facing
+// version path.
+func mcpServerVersion() string {
+	if version != "" {
+		return version
+	}
+	return "dev"
+}
+
 func versionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Show kernel and tool version",
 		RunE: func(c *cobra.Command, args []string) error {
+			out := c.OutOrStdout()
 			if version != "" {
-				fmt.Printf("kfeatures %s", version)
+				fmt.Fprintf(out, "kfeatures %s", version)
 				if commit != "" {
-					fmt.Printf(" (%s)", commit)
+					fmt.Fprintf(out, " (%s)", commit)
 				}
 				if date != "" {
-					fmt.Printf(" built %s", date)
+					fmt.Fprintf(out, " built %s", date)
 				}
-				fmt.Println()
+				fmt.Fprintln(out)
 			} else {
-				fmt.Println("kfeatures (dev)")
+				fmt.Fprintln(out, "kfeatures (dev)")
 			}
 
 			sf, err := kfeatures.ProbeWith()
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Kernel: %s\n", sf.KernelVersion)
+			fmt.Fprintf(out, "Kernel: %s\n", sf.KernelVersion)
 			return nil
 		},
 	}
 }
 
-func printJSON(v any) error {
-	enc := json.NewEncoder(os.Stdout)
+func printJSON(w io.Writer, v any) error {
+	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
+}
+
+// inMCPMode reports whether the command is being executed inside an MCP
+// tools/call request. The structcli MCP wrapper swaps the root command's
+// Out/Err for per-call buffers, so a non-nil custom Out (i.e. not the
+// process os.Stdout) signals MCP mode. We use it to swap process-wide
+// os.Exit calls for plain error returns: exiting the host would kill
+// the MCP server mid-session and break subsequent tools/call requests.
+func inMCPMode(c *cobra.Command) bool {
+	if c == nil {
+		return false
+	}
+	out := c.OutOrStdout()
+	return out != nil && out != os.Stdout
 }
 
 func availableFeatures() string {
