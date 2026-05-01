@@ -48,29 +48,27 @@ CI/CD gating, or container runtime validation.`,
 	root.AddCommand(configCmd())
 	root.AddCommand(versionCmd())
 
-	// Setup orchestrates the optional structcli capabilities. Today only
-	// --jsonschema is wired in; AI-native pieces (WithMCP, WithFlagErrors,
-	// structured errors, semantic exit codes) follow in a separate PR.
-	// Setup must run after AddCommand so subcommands are wrapped.
+	// Setup orchestrates the optional structcli capabilities. WithFlagErrors
+	// produces typed FlagError values for cobra/pflag misuse so HandleError
+	// classifies them with semantic exit codes (10/11/12/15) instead of the
+	// fallback Error=1. WithJSONSchema keeps the discovery surface from PR 1.
+	// MCP wiring lands in a follow-up PR. Setup must run after AddCommand so
+	// subcommands are wrapped.
 	if err := structcli.Setup(root,
 		structcli.WithJSONSchema(jsonschema.Options{}),
+		structcli.WithFlagErrors(),
 	); err != nil {
 		fmt.Fprintf(os.Stderr, "setup: %v\n", err)
 		os.Exit(1)
 	}
 
-	// ExecuteC drives the auto-bind pipeline (config → unmarshal → validate)
-	// for every command registered through structcli.Bind. It replaces
-	// per-subcommand PreRunE wiring and is required when Bind is used.
-	//
-	// ExecuteC silences cobra's own error/usage output so callers can
-	// render their own. PR 3 will swap this in for ExecuteOrExit (with
-	// structured JSON errors and semantic exit codes); for now we mimic
-	// cobra's pre-refactor behaviour to keep this PR behaviour-neutral.
-	if _, err := structcli.ExecuteC(root); err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-		os.Exit(1)
-	}
+	// ExecuteOrExit drives the auto-bind pipeline (config → unmarshal →
+	// validate) for every command registered through structcli.Bind, then
+	// either exits 0 or writes a structured-error JSON to stderr and exits
+	// with a semantic exit code from the exitcode package (input errors
+	// 10–19, config/env 20–29, runtime 1–9). Replaces the pre-refactor
+	// "Error: …" + os.Exit(1) bridge.
+	structcli.ExecuteOrExit(root)
 }
 
 // ProbeOptions defines flags for the probe subcommand.
@@ -186,16 +184,24 @@ func checkCmd() *cobra.Command {
 
 			err := kfeatures.Check(requirements...)
 			if err != nil {
+				// FeatureError is a business outcome, not an invocation
+				// error: --json emits the documented {ok,feature,reason}
+				// shape on stdout; the human path emits FAIL on stderr.
+				// Both exit 1 directly so structcli.ExecuteOrExit does not
+				// overwrite the verdict with a generic structured-error
+				// JSON. Other errors (probing, parsing) fall through to
+				// structcli for classification.
 				var fe *kfeatures.FeatureError
 				if errors.As(err, &fe) {
 					if opts.JSON {
-						return printJSON(map[string]any{
+						_ = printJSON(map[string]any{
 							"ok":      false,
 							"feature": fe.Feature,
 							"reason":  fe.Reason,
 						})
+					} else {
+						fmt.Fprintf(os.Stderr, "FAIL: %s — %s\n", fe.Feature, fe.Reason)
 					}
-					fmt.Fprintf(os.Stderr, "FAIL: %s — %s\n", fe.Feature, fe.Reason)
 					os.Exit(1)
 				}
 				return err
