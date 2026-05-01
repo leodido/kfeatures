@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - CLI: `--jsonschema` persistent flag. `kfeatures --jsonschema` (or `kfeatures <subcommand> --jsonschema`) prints a JSON Schema describing the current command's flags; `kfeatures --jsonschema=tree` walks the entire subtree. Lets agents and automation tooling discover the CLI's flag/command surface without scraping `--help`. Backed by `structcli.SetupJSONSchema`.
+- CLI: `--mcp` persistent flag turns `kfeatures` into a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio. Each runnable leaf command becomes an MCP tool whose input schema mirrors the cobra flag set; agents introspect via `tools/list` and invoke via `tools/call` without scraping `--help`. Backed by `structcli.WithMCP` (pure stdlib JSON-RPC, no extra heavy SDK dependency). Tools currently exposed: `probe`, `check`, `config`. `version` and `completion-*` are excluded (build metadata is in the MCP `serverInfo` response; shell completion is not an agent concern). Command handlers were re-routed through `cmd.OutOrStdout()` / `cmd.ErrOrStderr()` so MCP per-call output capture works correctly; non-MCP behaviour is bit-for-bit identical. Sessions survive business-outcome errors (`FeatureError`, missing kernel config) — under MCP these return as typed errors instead of `os.Exit(1)`, so subsequent `tools/call` requests on the same connection continue to work.
 
 ### Changed
 
