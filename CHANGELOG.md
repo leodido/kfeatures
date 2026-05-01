@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- README CLI section expanded to cover the AI-agent and CI/CD story: semantic exit codes (with a code/category table), structured-error JSON envelope, `--jsonschema` discovery (`tree` form), and `--mcp` MCP-server mode (with an example client config). A short pointer added near the top so the new capabilities are not buried.
+- CONTRIBUTING gained a "CLI conventions" section codifying the invariants introduced by the structcli v0.17.0 adoption: `Bind` + `Setup` + `ExecuteOrExit` construction, stream routing through `cmd.OutOrStdout()` / `cmd.ErrOrStderr()`, `os.Exit` discipline (the `inMCPMode` carve-out), the two coexisting error contracts (invocation envelope vs business-outcome verdict), and the MCP tool-exposure policy.
 - README restructured around user-facing usage: badges, expanded usage section with `Diagnose`, `FromELF`, `FeatureGroup`, and `RequireMount` examples, stability statement, and updated comparison/detect tables.
 - API model, feature-addition review checklist, `FromELF` contract, and classification snapshot moved from `README.md` to a new `CONTRIBUTING.md` (governance content kept; relocated to its proper audience).
 - Bumped `structcli` from `v0.11.0` to `v0.16.1`. No behavioral change; pure dependency upgrade. New structcli capabilities (`flagkit.Output`, `SetupJSONSchema`, `exitcode`, `SetupHelpTopics`, declarative enum registration) are deferred to follow-up PRs.
