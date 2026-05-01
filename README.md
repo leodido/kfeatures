@@ -22,6 +22,8 @@ if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err !=
 }
 ```
 
+The same answers are available from the CLI for **CI/CD gating** (semantic exit codes), and from `--mcp` mode for **AI agents** (JSON-RPC over stdio, every subcommand exposed as an MCP tool with a discoverable input schema). See [CLI](#cli).
+
 ## Why not `cilium/ebpf/features` or `bpftool`?
 
 [`cilium/ebpf/features`](https://pkg.go.dev/github.com/cilium/ebpf/features) answers: *"Does this kernel support program type X?"*
@@ -219,7 +221,7 @@ sf, err := kfeatures.ProbeWith(
 
 ## CLI
 
-A CLI is included for operator diagnostics and CI/CD gating:
+A CLI is included for operator diagnostics, CI/CD gating, and AI-agent integration:
 
 ```bash
 go install github.com/leodido/kfeatures/cmd/kfeatures@latest
@@ -230,8 +232,84 @@ kfeatures probe                                    # probe all features
 kfeatures check --require bpf-lsm,btf,cap-bpf      # exit 0 if met, 1 otherwise
 kfeatures probe --json                             # JSON output
 kfeatures config                                   # display kernel config
-kfeatures --jsonschema=tree                        # dump JSON Schema for the full command tree (agents/tooling)
 ```
+
+### CI/CD gating (semantic exit codes)
+
+`kfeatures check` exits **0** when all requirements are met and **1** when any are missing — drop it into a Helm chart pre-install hook, an init container, or a CI job. With `--json` the verdict is a parse-friendly object on stdout:
+
+```bash
+$ kfeatures check --require bpf-lsm,btf --json
+{
+  "ok": false,
+  "feature": "bpf-lsm",
+  "reason": "CONFIG_BPF_LSM=y but 'bpf' not in active LSM list; add lsm=...,bpf to kernel boot params"
+}
+$ echo $?
+1
+```
+
+Invocation errors (missing required flag, unknown flag, invalid value, unknown subcommand) emit a structured JSON envelope on stderr and exit with a **semantic** code so wrappers can distinguish "the user invoked us wrong" from "the kernel is missing a feature":
+
+| Exit code | Category    | Example                                                |
+| --------- | ----------- | ------------------------------------------------------ |
+| `0`       | OK          | check passed                                           |
+| `1`       | Runtime     | `FeatureError`, probe failure, missing kernel config   |
+| `10`      | Input       | `missing_required_flag` — required flag not provided   |
+| `11`      | Input       | `invalid_flag_value` — wrong type or unknown enum      |
+| `12`      | Input       | `unknown_flag`                                         |
+| `14`      | Input       | `unknown_command`                                      |
+
+```bash
+$ kfeatures check --require bogus
+{"error":"invalid_flag_value","exit_code":11,"flag":"require","got":"bogus","expected":"feature","command":"kfeatures check","message":"invalid argument \"bogus\" for \"-r, --require\" flag: unknown feature: \"bogus\" (available: …)"}
+$ echo $?
+11
+```
+
+Codes follow the [structcli/exitcode](https://pkg.go.dev/github.com/leodido/structcli/exitcode) categories: input errors `10`–`19` are agent-fixable, runtime errors `1`–`9` are operator-fixable.
+
+### AI agents (`--jsonschema`, `--mcp`)
+
+`kfeatures` is built to be driven by LLM agents and code-generation tooling without `--help` scraping.
+
+**`--jsonschema`** dumps a JSON Schema describing a command's flags. Use `=tree` to walk the entire subtree:
+
+```bash
+$ kfeatures check --jsonschema | jq '.title, .properties | keys'
+"kfeatures check"
+[
+  "json",
+  "require"
+]
+
+$ kfeatures --jsonschema=tree | jq 'map(.title) | map(select(test("^kfeatures( probe| check| config| version)?$")))'
+[
+  "kfeatures",
+  "kfeatures check",
+  "kfeatures config",
+  "kfeatures probe",
+  "kfeatures version"
+]
+```
+
+(`--jsonschema=tree` walks every node — including cobra-generated `help` and `completion` leaves; filter with `jq` to the ones you care about.)
+
+**`--mcp`** turns `kfeatures` into a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio. Each runnable leaf command becomes an MCP tool whose input schema mirrors the cobra flag set; agents introspect via `tools/list` and invoke via `tools/call`:
+
+```jsonc
+// Claude Desktop / any MCP-aware client config
+{
+  "mcpServers": {
+    "kfeatures": {
+      "command": "kfeatures",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+Tools exposed: `probe`, `check`, `config`. The server stays alive across business-outcome errors (a failing `check` does not terminate the session), and invocation errors flow through the same structured envelope as the CLI. Pure stdlib JSON-RPC inside [structcli](https://github.com/leodido/structcli/tree/main/mcp) — no extra heavy SDK dependency.
 
 ## What it detects
 
