@@ -6,24 +6,33 @@ exist because agents need them spelled out.
 
 ## Git author identity
 
-GitHub blocks pushes that would publish the maintainer's private email
-(`leodidonato@gmail.com`). Always commit and tag using the noreply form:
+Always commit and tag using the maintainer's GitHub-issued noreply
+identity. Pushes authored under the underlying private address are
+rejected by GitHub with:
+
+```
+remote: error: GH007: Your push would publish a private email address.
+```
+
+The noreply identity to use:
 
 ```
 user.email = 120051+leodido@users.noreply.github.com
 user.name  = leodido
 ```
 
-Inline form for one-off commits and tags:
+Inline form for one-off commits and tags (avoids relying on local git config):
 
 ```bash
 git -c user.email=120051+leodido@users.noreply.github.com -c user.name=leodido commit -m "..."
 git -c user.email=120051+leodido@users.noreply.github.com -c user.name=leodido tag -a vX.Y.Z -m "vX.Y.Z"
 ```
 
-Symptom when you forget: `remote: error: GH007: Your push would publish a
-private email address.` Push will be rejected. Recover by amending or
-re-tagging with the noreply identity, then push again.
+If a push is rejected with `GH007`, amend (or re-tag) with the noreply
+identity above and push again. Do not look up or quote the rejected
+private address anywhere in the repo, commit messages, or PR
+descriptions — the noreply form is the only identity this project
+should ever reference.
 
 ## Documentation split
 
