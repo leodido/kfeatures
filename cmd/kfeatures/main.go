@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -121,7 +120,7 @@ func probeCmd() *cobra.Command {
 			}
 
 			if opts.JSON {
-				return printJSON(c.OutOrStdout(), sf)
+				return printJSON(c, sf)
 			}
 
 			fmt.Fprint(c.OutOrStdout(), sf)
@@ -242,7 +241,7 @@ func checkCmd() *cobra.Command {
 						return fe
 					}
 					if opts.JSON {
-						_ = printJSON(c.OutOrStdout(), map[string]any{
+						_ = printJSON(c, map[string]any{
 							"ok":      false,
 							"feature": fe.Feature,
 							"reason":  fe.Reason,
@@ -256,7 +255,7 @@ func checkCmd() *cobra.Command {
 			}
 
 			if opts.JSON {
-				return printJSON(c.OutOrStdout(), map[string]any{"ok": true})
+				return printJSON(c, map[string]any{"ok": true})
 			}
 			fmt.Fprintln(c.OutOrStdout(), "OK: all requirements satisfied")
 			return nil
@@ -294,9 +293,8 @@ func configCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			out := c.OutOrStdout()
 			if opts.JSON {
-				return printJSON(out, map[string]any{
+				return printJSON(c, map[string]any{
 					"CONFIG_BPF_LSM":        sf.KernelConfig.BPFLSM.String(),
 					"CONFIG_IMA":            sf.KernelConfig.IMA.String(),
 					"CONFIG_DEBUG_INFO_BTF": sf.KernelConfig.BTF.String(),
@@ -304,6 +302,7 @@ func configCmd() *cobra.Command {
 				})
 			}
 
+			out := c.OutOrStdout()
 			fmt.Fprintf(out, "CONFIG_BPF_LSM:        %s\n", sf.KernelConfig.BPFLSM)
 			fmt.Fprintf(out, "CONFIG_IMA:            %s\n", sf.KernelConfig.IMA)
 			fmt.Fprintf(out, "CONFIG_DEBUG_INFO_BTF: %s\n", sf.KernelConfig.BTF)
@@ -361,9 +360,19 @@ func versionCmd() *cobra.Command {
 	}
 }
 
-func printJSON(w io.Writer, v any) error {
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "  ")
+// printJSON writes v as JSON to the command's stdout. In CLI mode the
+// output is human-readable (2-space indented, trailing newline) so
+// `kfeatures probe --json | jq` and similar workflows produce a tidy
+// result. In MCP mode the output is compact (no indent, single line)
+// because the captured stdout is jammed into the JSON-RPC response's
+// `result.content[0].text` field; indentation just bloats the
+// transport string with literal `\n` and leading spaces that an
+// MCP client has to re-parse.
+func printJSON(c *cobra.Command, v any) error {
+	enc := json.NewEncoder(c.OutOrStdout())
+	if !inMCPMode(c) {
+		enc.SetIndent("", "  ")
+	}
 	return enc.Encode(v)
 }
 
