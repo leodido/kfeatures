@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - CLI: `--jsonschema` persistent flag. `kfeatures --jsonschema` (or `kfeatures <subcommand> --jsonschema`) prints a JSON Schema describing the current command's flags; `kfeatures --jsonschema=tree` walks the entire subtree. Lets agents and automation tooling discover the CLI's flag/command surface without scraping `--help`. Backed by `structcli.SetupJSONSchema`.
-- CLI: `--mcp` persistent flag turns `kfeatures` into a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio. Each runnable leaf command becomes an MCP tool whose input schema mirrors the cobra flag set; agents introspect via `tools/list` and invoke via `tools/call` without scraping `--help`. Backed by `structcli.WithMCP` (pure stdlib JSON-RPC, no extra heavy SDK dependency). Tools currently exposed: `probe`, `check`, `config`. `version` and `completion-*` are excluded (build metadata is in the MCP `serverInfo` response; shell completion is not an agent concern). Command handlers were re-routed through `cmd.OutOrStdout()` / `cmd.ErrOrStderr()` so MCP per-call output capture works correctly; non-MCP behaviour is bit-for-bit identical. Sessions survive business-outcome errors (`FeatureError`, missing kernel config) — under MCP these return as typed errors instead of `os.Exit(1)`, so subsequent `tools/call` requests on the same connection continue to work.
+- CLI: `--mcp` persistent flag turns `kfeatures` into a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio. Each runnable leaf command becomes an MCP tool whose input schema mirrors the cobra flag set; agents introspect via `tools/list` and invoke via `tools/call` without scraping `--help`. Backed by `structcli.WithMCP` (pure stdlib JSON-RPC, no extra heavy SDK dependency). Tools currently exposed: `probe`, `check`, `config`. `version` and `completion-*` are excluded (build metadata is in the MCP `serverInfo` response; shell completion is not an agent concern). Command handlers were re-routed through `cmd.OutOrStdout()` / `cmd.ErrOrStderr()` so MCP per-call output capture works correctly; non-MCP behaviour is bit-for-bit identical. Sessions survive business-outcome errors (`FeatureError`, missing kernel config): under MCP these return as typed errors instead of `os.Exit(1)`, so subsequent `tools/call` requests on the same connection continue to work.
 
 ### Changed
 
@@ -22,10 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped `structcli` from `v0.11.0` to `v0.16.1`. No behavioral change; pure dependency upgrade. New structcli capabilities (`flagkit.Output`, `SetupJSONSchema`, `exitcode`, `SetupHelpTopics`, declarative enum registration) are deferred to follow-up PRs.
 - Bumped `structcli` from `v0.16.1` to `v0.17.0`. No behavioral change; pure dependency upgrade. New `Bind` / `Setup` / `ExecuteC` ergonomics and AI-native capabilities (`WithMCP`, `WithFlagErrors`, structured errors, semantic exit codes) are adopted in follow-up PRs.
 - CLI: migrated to `structcli.Bind` + `structcli.Setup` + `structcli.ExecuteC`. Per-subcommand `Attach` methods, manual `Define`/`Unmarshal` calls, and `PreRunE` wiring are gone; flag definition, viper binding, env binding, and unmarshal now run through structcli's auto-bind pipeline. Behaviour-neutral: error messages and exit codes are unchanged. AI-native error handling (`ExecuteOrExit`, structured errors, semantic exit codes) lands in a follow-up PR.
-- CLI: invocation errors (missing required flag, unknown flag, invalid flag value, unknown subcommand) now emit a single JSON line on stderr and exit with a semantic exit code from `structcli/exitcode` (input errors `10`–`19`, config/env `20`–`29`, runtime `1`–`9`) instead of cobra's plain string + exit `1`. Wired via `structcli.WithFlagErrors()` + `structcli.ExecuteOrExit(root)`. The shape (`{error, exit_code, message, flag, got, command, available, ...}`) is documented by structcli's `StructuredError`. Business outcomes from `kfeatures check` (`FeatureError`) keep their existing contract: `--json` prints `{ok,feature,reason}` on stdout, the human path prints `FAIL: feature — reason` on stderr, both exit `1`.
+- CLI: invocation errors (missing required flag, unknown flag, invalid flag value, unknown subcommand) now emit a single JSON line on stderr and exit with a semantic exit code from `structcli/exitcode` (input errors `10`–`19`, config/env `20`–`29`, runtime `1`–`9`) instead of cobra's plain string + exit `1`. Wired via `structcli.WithFlagErrors()` + `structcli.ExecuteOrExit(root)`. The shape (`{error, exit_code, message, flag, got, command, available, ...}`) is documented by structcli's `StructuredError`. Business outcomes from `kfeatures check` (`FeatureError`) keep their existing contract: `--json` prints `{ok,feature,reason}` on stdout, the human path prints `FAIL: feature - reason` on stderr, both exit `1`.
 - CLI: root command now has a `RunE` that defers to `Help()`. Bare `kfeatures` still prints help and exits 0 (unchanged exit behavior); the change is required so structcli's `--jsonschema` interceptor fires on root invocations.
 
-## [0.4.0] — 2026-04-23
+## [0.4.0] - 2026-04-23
 
 ### Added
 
@@ -34,15 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `Check(FeatureBPFFS)` and `Check(FeatureTraceFS)` now verify the filesystem is actually mounted with the expected superblock magic (`BPF_FS_MAGIC`, `TRACEFS_MAGIC`) instead of only checking that a directory exists at the path. Previously, both gates returned success on any system where `/sys/fs/bpf` (resp. `/sys/kernel/tracing`) existed as a directory — which is the case by default on systemd-based distros even when the corresponding pseudo-filesystem is not mounted. Callers gating on these features (e.g. before pinning maps on bpffs) would silently get a false positive and fail later at `bpf_obj_pin()`. Diagnostic-only fields `SystemFeatures.DebugFS` / `.SecurityFS` keep their previous presence-only semantics.
+- `Check(FeatureBPFFS)` and `Check(FeatureTraceFS)` now verify the filesystem is actually mounted with the expected superblock magic (`BPF_FS_MAGIC`, `TRACEFS_MAGIC`) instead of only checking that a directory exists at the path. Previously, both gates returned success on any system where `/sys/fs/bpf` (resp. `/sys/kernel/tracing`) existed as a directory, which is the case by default on systemd-based distros even when the corresponding pseudo-filesystem is not mounted. Callers gating on these features (e.g. before pinning maps on bpffs) would silently get a false positive and fail later at `bpf_obj_pin()`. Diagnostic-only fields `SystemFeatures.DebugFS` / `.SecurityFS` keep their previous presence-only semantics.
 
-## [0.3.1] — 2026-03-23
+## [0.3.1] - 2026-03-23
 
 ### Added
 
 - `FeatureIMAMeasurementActive` and exported `ProbeIMAMeasurementActive()`: detects whether IMA has an active measurement policy by reading the runtime measurement count. A count greater than 1 (beyond the boot aggregate) means at least one rule is active; when the count is exactly 1 the probe executes `/bin/true` and re-reads to confirm. When measurement is active, file hashes are cached in the inode security blob and consumers can skip recomputation on repeated access.
 
-## [0.3.0] — 2026-02-23
+## [0.3.0] - 2026-02-23
 
 ### Added
 
@@ -53,12 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `Check()` no longer special-cases LSM injection — `FeatureBPFLSM` is a composite gate evaluated through the standard `Result` / `Diagnose` paths.
+- `Check()` no longer special-cases LSM injection. `FeatureBPFLSM` is a composite gate evaluated through the standard `Result` / `Diagnose` paths.
 - CLI: `check` help and require UX reworked around the generated enum.
 - Bumped `structcli` to `v0.11.0` (via `v0.10.0`).
 - CI: pinned the goreleaser CLI version used in the release workflow.
 
-## [0.2.0] — 2026-02-18
+## [0.2.0] - 2026-02-18
 
 ### Changed
 
@@ -80,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ErrUnsupportedPlatform` exported sentinel error for non-Linux platforms
 - Build-constrained stub files (`probe_other.go`, `check_other.go`, `config_other.go`) for non-Linux compilation
 
-## [0.1.0] — 2026-02-15
+## [0.1.0] - 2026-02-15
 
 First public release.
 

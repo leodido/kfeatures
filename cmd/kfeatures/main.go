@@ -51,23 +51,23 @@ CI/CD gating, or container runtime validation.`,
 	root.AddCommand(versionCmd())
 
 	// Setup orchestrates the optional structcli capabilities:
-	//   * WithJSONSchema  — `--jsonschema` discovery surface (PR 1).
-	//   * WithFlagErrors  — typed FlagError values so HandleError classifies
-	//                       cobra/pflag misuse with semantic exit codes
-	//                       (10/11/12/15) instead of the Error=1 fallback.
-	//   * WithMCP         — `--mcp` flag exposes every runnable leaf command
-	//                       as an MCP tool over stdio. Each subcommand
-	//                       becomes a callable tool whose schema mirrors the
-	//                       cobra flag set; agents introspect via tools/list
-	//                       and invoke via tools/call without scraping
-	//                       --help. Tool name uses the command path with `-`
-	//                       as separator (only relevant once we have nested
-	//                       subcommands; today the names are just `probe`,
-	//                       `check`, `config`, `version`).
-	//                       `version` and `completion` are excluded: the
-	//                       former is build-metadata best surfaced as a
-	//                       server-info field, and the latter is a shell
-	//                       integration with no agent value.
+	//   * WithJSONSchema: `--jsonschema` discovery surface.
+	//   * WithFlagErrors: typed FlagError values so HandleError classifies
+	//                     cobra/pflag misuse with semantic exit codes
+	//                     (10/11/12/15) instead of the Error=1 fallback.
+	//   * WithMCP:        `--mcp` flag exposes every runnable leaf command
+	//                     as an MCP tool over stdio. Each subcommand
+	//                     becomes a callable tool whose schema mirrors the
+	//                     cobra flag set; agents introspect via tools/list
+	//                     and invoke via tools/call without scraping
+	//                     --help. Tool name uses the command path with `-`
+	//                     as separator (only relevant once we have nested
+	//                     subcommands; today the names are just `probe`,
+	//                     `check`, `config`, `version`).
+	//                     `version` and `completion` are excluded: the
+	//                     former is build-metadata best surfaced as a
+	//                     server-info field, and the latter is a shell
+	//                     integration with no agent value.
 	// Setup must run after AddCommand so subcommands are wrapped.
 	if err := structcli.Setup(root,
 		structcli.WithJSONSchema(jsonschema.Options{}),
@@ -248,7 +248,7 @@ func checkCmd() *cobra.Command {
 							"reason":  fe.Reason,
 						})
 					} else {
-						fmt.Fprintf(c.ErrOrStderr(), "FAIL: %s — %s\n", fe.Feature, fe.Reason)
+						fmt.Fprintf(c.ErrOrStderr(), "FAIL: %s - %s\n", fe.Feature, fe.Reason)
 					}
 					os.Exit(1)
 				}
@@ -318,11 +318,13 @@ func configCmd() *cobra.Command {
 	return cmd
 }
 
-// mcpServerVersion returns the version reported in the MCP initialize
-// response. Mirrors what `kfeatures version` prints so MCP clients can
-// correlate tool output with build metadata. Falls back to "dev" when
-// built without ldflags (plain `go build`), matching the human-facing
-// version path.
+// mcpServerVersion returns just the version string for MCP serverInfo
+// (whose `name` field already carries "kfeatures"). Falls back to "dev"
+// when built without ldflags, matching the human-facing version path's
+// fallback. The CLI `version` subcommand renders a richer line
+// ("kfeatures <ver> (<commit>) built <date>") for human consumption;
+// MCP clients should use `tools/call` on a future `version` tool (today
+// excluded) or read `serverInfo.version` directly.
 func mcpServerVersion() string {
 	if version != "" {
 		return version
@@ -366,11 +368,26 @@ func printJSON(w io.Writer, v any) error {
 }
 
 // inMCPMode reports whether the command is being executed inside an MCP
-// tools/call request. The structcli MCP wrapper swaps the root command's
-// Out/Err for per-call buffers, so a non-nil custom Out (i.e. not the
-// process os.Stdout) signals MCP mode. We use it to swap process-wide
-// os.Exit calls for plain error returns: exiting the host would kill
-// the MCP server mid-session and break subsequent tools/call requests.
+// tools/call request. The structcli MCP wrapper swaps the executed
+// command's Out/Err for per-call buffers (cobra's OutOrStdout walks up
+// the parent chain, so reading it on a leaf reflects the swap performed
+// by the wrapper on root or on a factory-built command), so a custom
+// Out distinct from the process os.Stdout signals MCP mode. We use it
+// to swap process-wide os.Exit calls for plain error returns: exiting
+// the host would kill the MCP server mid-session and break subsequent
+// tools/call requests.
+//
+// Coupling note: the proxy assumes the only code path that calls
+// SetOut on our cobra tree is structcli's MCP wrapper. As of structcli
+// v0.17.0 this holds (only mcp.go calls SetOut in non-test code). If a
+// future structcli capability calls SetOut for another reason, this
+// detection must be replaced with an explicit signal (e.g. a context
+// value or annotation set by the MCP wrapper).
+//
+// Caller note: do not introduce `defer` statements in any RunE that
+// reaches `os.Exit(1)` through this gate; os.Exit skips deferreds.
+// Today no such RunE has a defer; this comment exists to keep it that
+// way.
 func inMCPMode(c *cobra.Command) bool {
 	if c == nil {
 		return false

@@ -32,7 +32,7 @@
 //	if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err != nil {
 //	    var fe *kfeatures.FeatureError
 //	    if errors.As(err, &fe) {
-//	        log.Fatalf("kernel not ready: %s — %s", fe.Feature, fe.Reason)
+//	        log.Fatalf("kernel not ready: %s - %s", fe.Feature, fe.Reason)
 //	    }
 //	    log.Fatal(err)
 //	}

@@ -68,9 +68,17 @@ setup_file() {
 @test "check: legacy alias is rejected" {
     run "$KFEATURES_BIN" check --require bpffs
     assert_failure
-    # structcli wraps the pflag error in a JSON envelope, so the original
-    # quoted feature name is JSON-escaped. Match the escaped form.
-    assert_output --partial 'unknown feature: \"bpffs\"'
+    # Assert against the structured envelope's `got` field rather than a
+    # JSON-escaped substring of `message`: `got` is the documented
+    # contract, while `message` is structcli prose that may be reworded
+    # without breaking semantics.
+    echo "$output" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+assert d['error'] == 'invalid_flag_value', d
+assert d['got'] == 'bpffs', d
+assert d['flag'] == 'require', d
+"
 }
 
 # --- structured errors (structcli WithFlagErrors + ExecuteOrExit) ---

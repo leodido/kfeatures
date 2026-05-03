@@ -4,7 +4,7 @@ This document describes the conventions that govern the public API surface and
 the review checklist used when adding a new probe, feature, or requirement.
 
 The user-facing `README.md` is intentionally kept short. The contents below are
-internal API governance — read them before proposing a new `Feature*`, a new
+internal API governance: read them before proposing a new `Feature*`, a new
 `Require*` constructor, or a new `WithX` option.
 
 ## API model
@@ -18,11 +18,11 @@ internal API governance — read them before proposing a new `Feature*`, a new
 
 Requirement items consumed by `Check(...)`:
 
-- `Feature` — stable boolean capability
-- `FeatureGroup` — reusable preset of requirements (also returned by `FromELF`)
-- `RequireProgramType(...)`, `RequireMapType(...)`, `RequireProgramHelper(...)` — parameterized workload requirements
-- `RequireMount(path, magic)` — parameterized filesystem-mount gate; magic comes from `golang.org/x/sys/unix` (e.g. `unix.BPF_FS_MAGIC`)
-- `FromELF(path)` — producer of requirement items in the same model (program/map types + helper-per-program requirements)
+- `Feature`: stable boolean capability
+- `FeatureGroup`: reusable preset of requirements (also returned by `FromELF`)
+- `RequireProgramType(...)`, `RequireMapType(...)`, `RequireProgramHelper(...)`: parameterized workload requirements
+- `RequireMount(path, magic)`: parameterized filesystem-mount gate; magic comes from `golang.org/x/sys/unix` (e.g. `unix.BPF_FS_MAGIC`)
+- `FromELF(path)`: producer of requirement items in the same model (program/map types + helper-per-program requirements)
 
 `FromELF` is parser-only and available cross-platform; runtime probing/checking
 remains Linux-specific.
@@ -56,20 +56,20 @@ Changes to any of these points require explicit discussion in the PR and a CHANG
 
 ## CLI conventions
 
-The `cmd/kfeatures` binary is built on [structcli](https://github.com/leodido/structcli) (>= v0.17.0). The patterns below are invariants — PRs that break them need explicit discussion in the description.
+The `cmd/kfeatures` binary is built on [structcli](https://github.com/leodido/structcli) (>= v0.17.0). The patterns below are invariants: PRs that break them need explicit discussion in the description.
 
 ### Construction (`Bind` + `Setup` + `ExecuteOrExit`)
 
 - Each subcommand declares its flags as a struct annotated with `flag:"…"` tags and registers it via `structcli.Bind(cmd, opts)`. No manual `Define`/`Unmarshal`/`PreRunE` plumbing.
 - Top-level orchestration lives in a single `structcli.Setup(root, ...)` call. Every optional capability is opted in via a `With*` option:
-  - `WithJSONSchema(jsonschema.Options{})` — `--jsonschema` discovery surface.
-  - `WithFlagErrors()` — typed `FlagError` values so cobra/pflag misuse classifies into semantic exit codes instead of falling back to `Error=1`.
-  - `WithMCP(structclimcp.Options{...})` — `--mcp` server mode.
+  - `WithJSONSchema(jsonschema.Options{})`: `--jsonschema` discovery surface.
+  - `WithFlagErrors()`: typed `FlagError` values so cobra/pflag misuse classifies into semantic exit codes instead of falling back to `Error=1`.
+  - `WithMCP(structclimcp.Options{...})`: `--mcp` server mode.
 - Execution goes through `structcli.ExecuteOrExit(root)`. Do **not** add a manual `if _, err := root.Execute(); err != nil { os.Exit(1) }` bridge: it bypasses the structured-error pipeline.
 
 ### Stream routing (MCP-safe)
 
-All command output **must** go through `cmd.OutOrStdout()` and `cmd.ErrOrStderr()` — never bare `os.Stdout`/`os.Stderr` and never the implicit-stdout `fmt.Print*` family. The MCP wrapper swaps the root command's `Out`/`Err` for per-call buffers so each `tools/call` response captures the command's output; bare `os.Stdout` writes leak directly to the host stdio and break JSON-RPC framing.
+All command output **must** go through `cmd.OutOrStdout()` and `cmd.ErrOrStderr()`. Never bare `os.Stdout`/`os.Stderr` and never the implicit-stdout `fmt.Print*` family. The MCP wrapper swaps the root command's `Out`/`Err` for per-call buffers so each `tools/call` response captures the command's output; bare `os.Stdout` writes leak directly to the host stdio and break JSON-RPC framing.
 
 Non-MCP behaviour is bit-for-bit identical because cobra's `OutOrStdout()` resolves to `os.Stdout` when no `SetOut` was called.
 
@@ -79,7 +79,7 @@ Non-MCP behaviour is bit-for-bit identical because cobra's `OutOrStdout()` resol
 
 ```go
 if inMCPMode(c) {
-    return err  // typed return — MCP layer wraps it as isError=true content
+    return err  // typed return; MCP layer wraps it as isError=true content
 }
 os.Exit(1)
 ```
@@ -90,8 +90,8 @@ The helper detects MCP mode by checking whether `c.OutOrStdout()` is the bare `o
 
 Two distinct contracts coexist in the CLI:
 
-1. **Invocation errors** (cobra/pflag misuse, unknown subcommand, validation failure) flow through `structcli.HandleError`, which writes a single JSON line to stderr and exits with a code from `structcli/exitcode` (input `10`–`19`, config/env `20`–`29`, runtime `1`–`9`). The shape is documented by structcli's `StructuredError`. Do not hand-format these — let `WithFlagErrors` + `ExecuteOrExit` do their job.
-2. **Business outcomes** (`*kfeatures.FeatureError` from `check`, missing kernel config from `config`) keep their hand-rolled contract on the CLI side: `--json` prints `{ok,feature,reason}` on stdout, the human path prints `FAIL: feature — reason` on stderr, both exit 1. Under MCP this carve-out is collapsed (the structcli envelope wins) — the typed error is returned and the MCP layer marks the response `isError=true`.
+1. **Invocation errors** (cobra/pflag misuse, unknown subcommand, validation failure) flow through `structcli.HandleError`, which writes a single JSON line to stderr and exits with a code from `structcli/exitcode` (input `10`–`19`, config/env `20`–`29`, runtime `1`–`9`). The shape is documented by structcli's `StructuredError`. Do not hand-format these. Let `WithFlagErrors` + `ExecuteOrExit` do their job.
+2. **Business outcomes** (`*kfeatures.FeatureError` from `check`, missing kernel config from `config`) keep their hand-rolled contract on the CLI side: `--json` prints `{ok,feature,reason}` on stdout, the human path prints `FAIL: feature - reason` on stderr, both exit 1. Under MCP this carve-out is collapsed (the structcli envelope wins): the typed error is returned and the MCP layer marks the response `isError=true`.
 
 When adding a new subcommand that can fail with a domain-specific verdict, decide which bucket it belongs to *before* writing the handler. Do not invent a third shape.
 
@@ -99,8 +99,8 @@ When adding a new subcommand that can fail with a domain-specific verdict, decid
 
 `WithMCP` exposes every runnable leaf command by default. Two reasons to exclude a tool:
 
-- **Build metadata or shell integration** (e.g. `version`, `completion-*`) — these belong in MCP's `serverInfo` response or are not agent-relevant. Add them to `Options.Exclude` by full tool name.
-- **Side-effecting commands without idempotent semantics** — leave a comment in the exclude list explaining why; agents should not invoke commands that mutate host state without the operator approving the call.
+- **Build metadata or shell integration** (e.g. `version`, `completion-*`): these belong in MCP's `serverInfo` response or are not agent-relevant. Add them to `Options.Exclude` by full tool name.
+- **Side-effecting commands without idempotent semantics**: leave a comment in the exclude list explaining why; agents should not invoke commands that mutate host state without the operator approving the call.
 
 When introducing a new subcommand, default to exposing it. Only exclude after thinking through the agent UX.
 

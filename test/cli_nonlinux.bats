@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Non-Linux CLI tests — verify graceful degradation.
+# Non-Linux CLI tests: verify graceful degradation.
 
 load helper
 
