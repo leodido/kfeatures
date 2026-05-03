@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-03
+
 ### Added
 
 - CLI: `--jsonschema` persistent flag. `kfeatures --jsonschema` (or `kfeatures <subcommand> --jsonschema`) prints a JSON Schema describing the current command's flags; `kfeatures --jsonschema=tree` walks the entire subtree. Lets agents and automation tooling discover the CLI's flag/command surface without scraping `--help`. Backed by `structcli.SetupJSONSchema`.
@@ -115,7 +117,8 @@ First public release.
 - Release automation with GoReleaser and GitHub generated release notes (`.github/release.yml`)
 - SAST workflow (CodeQL)
 
-[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/leodido/kfeatures/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/leodido/kfeatures/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/leodido/kfeatures/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/leodido/kfeatures/compare/v0.2.0...v0.3.0
