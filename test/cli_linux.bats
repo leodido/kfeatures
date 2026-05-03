@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Linux-only CLI tests — require a real kernel.
+# Linux-only CLI tests: require a real kernel.
 
 load helper
 

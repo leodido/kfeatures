@@ -16,8 +16,8 @@ It probes kernel capabilities at runtime and returns actionable diagnostics: not
 if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err != nil {
     var fe *kfeatures.FeatureError
     if errors.As(err, &fe) {
-        log.Fatalf("%s — %s", fe.Feature, fe.Reason)
-        // Output: BPF LSM — CONFIG_BPF_LSM=y but 'bpf' not in active LSM list; add lsm=...,bpf to kernel boot params
+        log.Fatalf("%s - %s", fe.Feature, fe.Reason)
+        // Output: BPF LSM - CONFIG_BPF_LSM=y but 'bpf' not in active LSM list; add lsm=...,bpf to kernel boot params
     }
 }
 ```
@@ -82,7 +82,7 @@ import (
 if err := kfeatures.Check(kfeatures.FeatureBPFLSM, kfeatures.FeatureBTF); err != nil {
     var fe *kfeatures.FeatureError
     if errors.As(err, &fe) {
-        log.Fatalf("kernel not ready: %s — %s", fe.Feature, fe.Reason)
+        log.Fatalf("kernel not ready: %s - %s", fe.Feature, fe.Reason)
     }
 }
 ```
@@ -108,7 +108,7 @@ err := kfeatures.Check(
 
 ### Custom mount paths (`RequireMount`)
 
-Gate on a filesystem mounted at an arbitrary path with the expected superblock magic — useful when bpffs lives somewhere other than `/sys/fs/bpf`:
+Gate on a filesystem mounted at an arbitrary path with the expected superblock magic. Useful when bpffs lives somewhere other than `/sys/fs/bpf`:
 
 ```go
 import (
@@ -141,7 +141,7 @@ if err := kfeatures.Check(TracingTool); err != nil {
 
 ### Extract requirements from a compiled object (`FromELF`)
 
-Point `FromELF` at an eBPF `.o` and get back a `FeatureGroup` describing its program types, map types, and helper-per-program requirements — directly consumable by `Check`:
+Point `FromELF` at an eBPF `.o` and get back a `FeatureGroup` describing its program types, map types, and helper-per-program requirements (directly consumable by `Check`):
 
 ```go
 reqs, err := kfeatures.FromELF("./bpf/probe.o")
@@ -203,7 +203,7 @@ Filesystems:
   bpffs: yes
 ```
 
-Individual fields are typed and inspectable programmatically — see [`SystemFeatures`](https://pkg.go.dev/github.com/leodido/kfeatures#SystemFeatures).
+Individual fields are typed and inspectable programmatically (see [`SystemFeatures`](https://pkg.go.dev/github.com/leodido/kfeatures#SystemFeatures)).
 
 ### Selective probing
 
@@ -217,7 +217,7 @@ sf, err := kfeatures.ProbeWith(
 )
 ```
 
-`WithX` options select probe scope. They do not define requirements — use `Check(...)` for gating.
+`WithX` options select probe scope. They do not define requirements; use `Check(...)` for gating.
 
 ## CLI
 
@@ -236,7 +236,7 @@ kfeatures config                                   # display kernel config
 
 ### CI/CD gating (semantic exit codes)
 
-`kfeatures check` exits **0** when all requirements are met and **1** when any are missing — drop it into a Helm chart pre-install hook, an init container, or a CI job. With `--json` the verdict is a parse-friendly object on stdout:
+`kfeatures check` exits **0** when all requirements are met and **1** when any are missing. Drop it into a Helm chart pre-install hook, an init container, or a CI job. With `--json` the verdict is a parse-friendly object on stdout:
 
 ```bash
 $ kfeatures check --require bpf-lsm,btf --json
@@ -255,8 +255,8 @@ Invocation errors (missing required flag, unknown flag, invalid value, unknown s
 | --------- | ----------- | ------------------------------------------------------ |
 | `0`       | OK          | check passed                                           |
 | `1`       | Runtime     | `FeatureError`, probe failure, missing kernel config   |
-| `10`      | Input       | `missing_required_flag` — required flag not provided   |
-| `11`      | Input       | `invalid_flag_value` — wrong type or unknown enum      |
+| `10`      | Input       | `missing_required_flag`: required flag not provided    |
+| `11`      | Input       | `invalid_flag_value`: wrong type or unknown enum       |
 | `12`      | Input       | `unknown_flag`                                         |
 | `14`      | Input       | `unknown_command`                                      |
 
@@ -293,7 +293,7 @@ $ kfeatures --jsonschema=tree | jq 'map(.title) | map(select(test("^kfeatures( p
 ]
 ```
 
-(`--jsonschema=tree` walks every node — including cobra-generated `help` and `completion` leaves; filter with `jq` to the ones you care about.)
+(`--jsonschema=tree` walks every node, including cobra-generated `help` and `completion` leaves; filter with `jq` to the ones you care about.)
 
 **`--mcp`** turns `kfeatures` into a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio. Each runnable leaf command becomes an MCP tool whose input schema mirrors the cobra flag set; agents introspect via `tools/list` and invoke via `tools/call`:
 
@@ -309,7 +309,7 @@ $ kfeatures --jsonschema=tree | jq 'map(.title) | map(select(test("^kfeatures( p
 }
 ```
 
-Tools exposed: `probe`, `check`, `config`. The server stays alive across business-outcome errors (a failing `check` does not terminate the session), and invocation errors flow through the same structured envelope as the CLI. Pure stdlib JSON-RPC inside [structcli](https://github.com/leodido/structcli/tree/main/mcp) — no extra heavy SDK dependency.
+Tools exposed: `probe`, `check`, `config`. The server stays alive across business-outcome errors (a failing `check` does not terminate the session), and invocation errors flow through the same structured envelope as the CLI. Pure stdlib JSON-RPC inside [structcli](https://github.com/leodido/structcli/tree/main/mcp); no extra heavy SDK dependency.
 
 ## What it detects
 
@@ -333,7 +333,7 @@ Tools exposed: `probe`, `check`, `config`. The server stays alive across busines
 
 Pre-1.0. The public API may change between minor versions; breaking changes are
 called out explicitly in [CHANGELOG.md](CHANGELOG.md). The `FromELF` contract
-(signature, determinism, fail-closed semantics) is frozen — see
+(signature, determinism, fail-closed semantics) is frozen; see
 [CONTRIBUTING.md](CONTRIBUTING.md#fromelf-contract).
 
 ## Requirements

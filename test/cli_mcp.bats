@@ -13,12 +13,24 @@ setup_file() {
 
 # Send one or more JSON-RPC requests on stdin and return the responses.
 # Usage: mcp_call <request> [<request> ...]
+#
+# Stderr is captured (not discarded) and surfaced when the binary exits
+# non-zero. Discarding stderr would mask panics, structcli envelope
+# errors emitted before the MCP loop starts (e.g. malformed --mcp args),
+# and any future diagnostic the binary writes to stderr in MCP mode.
 mcp_call() {
     local input=""
     for req in "$@"; do
         input+="$req"$'\n'
     done
-    printf "%s" "$input" | "$KFEATURES_BIN" --mcp 2>/dev/null
+    local stderr_file rc
+    stderr_file="$(mktemp)"
+    printf "%s" "$input" | "$KFEATURES_BIN" --mcp 2>"$stderr_file"
+    rc=$?
+    if [[ $rc -ne 0 ]]; then
+        echo "kfeatures --mcp exited $rc; stderr: $(cat "$stderr_file")" >&2
+    fi
+    rm -f "$stderr_file"
 }
 
 # Extract one response by id from a multi-line MCP transcript.
@@ -139,7 +151,7 @@ assert d['error']['message'] == 'unknown tool', d
     done
 }
 
-@test "mcp: stdout is JSON-RPC only — no leakage from command handlers" {
+@test "mcp: stdout is JSON-RPC only, no leakage from command handlers" {
     if [[ "$(uname -s)" != "Linux" ]]; then
         skip "requires Linux for live probe"
     fi

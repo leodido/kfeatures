@@ -49,7 +49,7 @@ type ProgramHelperRequirement struct {
 // superblock magic equals Magic. Magic is the raw f_type value the kernel
 // reports via Statfs (e.g. golang.org/x/sys/unix.BPF_FS_MAGIC for bpffs).
 //
-// Use this when [FeatureBPFFS] / [FeatureTraceFS] are too restrictive — for
+// Use this when [FeatureBPFFS] / [FeatureTraceFS] are too restrictive: for
 // example, bpffs mounted at a non-default path, or any other pseudo-FS the
 // caller depends on (cgroupv2, debugfs, securityfs, tmpfs in tests, ...).
 type MountRequirement struct {
