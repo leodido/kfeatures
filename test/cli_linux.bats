@@ -66,3 +66,52 @@ setup_file() {
     run "$KFEATURES_BIN" config
     [[ "$status" -eq 0 || "$status" -eq 1 ]]
 }
+
+@test "config: missing kernel config emits structcli envelope on stderr" {
+    # Only meaningful when the runner cannot read kernel config
+    # from any of the sources readKernelConfig probes (config.go):
+    # /proc/config.gz, /boot/config-$(uname -r),
+    # /lib/modules/$(uname -r)/config. On hosts where one IS
+    # readable this path simply isn't exercised.
+    local rel
+    rel="$(uname -r)"
+    if [[ -r /proc/config.gz ]] \
+        || [[ -r "/boot/config-${rel}" ]] \
+        || [[ -r "/lib/modules/${rel}/config" ]]; then
+        skip "kernel config is readable on this host"
+    fi
+    run "$KFEATURES_BIN" config
+    assert_failure
+    # Stderr is the structcli envelope, not a bare line. We check
+    # the stable surface: a JSON object whose message starts with
+    # the canonical "kernel config not available" prefix and which
+    # carries the command name. The remediation suffix
+    # ("tried /proc/config.gz, ...") is intentionally NOT asserted
+    # so the wording can be improved without churning the test.
+    assert_output --partial '"message":"kernel config not available'
+    assert_output --partial '"command":"kfeatures config"'
+}
+
+@test "config --json: missing kernel config keeps stdout clean" {
+    local rel
+    rel="$(uname -r)"
+    if [[ -r /proc/config.gz ]] \
+        || [[ -r "/boot/config-${rel}" ]] \
+        || [[ -r "/lib/modules/${rel}/config" ]]; then
+        skip "kernel config is readable on this host"
+    fi
+    # Capture stdout and stderr separately so we can prove --json
+    # no longer drops a half-baked payload on stdout: the failure
+    # is reported only via the structcli envelope on stderr.
+    local out_file err_file rc
+    out_file="$(mktemp)"
+    err_file="$(mktemp)"
+    set +e
+    "$KFEATURES_BIN" config --json >"$out_file" 2>"$err_file"
+    rc=$?
+    set -e
+    [[ "$rc" -eq 1 ]]
+    [[ ! -s "$out_file" ]]
+    grep -q '"message":"kernel config not available' "$err_file"
+    rm -f "$out_file" "$err_file"
+}

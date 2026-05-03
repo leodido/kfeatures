@@ -286,11 +286,24 @@ func configCmd() *cobra.Command {
 			}
 
 			if sf.KernelConfig == nil {
-				fmt.Fprintln(c.ErrOrStderr(), "kernel config not available")
-				if inMCPMode(c) {
-					return errors.New("kernel config not available")
-				}
-				os.Exit(1)
+				// Treat as an invocation-class failure and let
+				// structcli's HandleError emit the envelope. This
+				// gives consistent behavior across CLI and MCP and
+				// stops --json from being silently dropped on this
+				// path: previously the os.Exit(1) bypassed the
+				// JSON branch entirely and printed a bare line to
+				// stderr.
+				//
+				// structcli has no public API to attach a Hint to
+				// a plain error (the Hint field is only populated
+				// for typed flag/env errors), so we fold the
+				// remediation context into the message itself.
+				// Listing the probed paths and the most common
+				// fixes lets agents and humans self-diagnose
+				// without grep'ing the source.
+				return fmt.Errorf("kernel config not available: tried /proc/config.gz, /boot/config-%s, /lib/modules/%s/config; "+
+					"enable CONFIG_IKCONFIG_PROC=y to expose /proc/config.gz, install the matching linux-headers/kernel package, "+
+					"or run as root if /proc/config.gz exists but is unreadable", sf.KernelVersion, sf.KernelVersion)
 			}
 
 			if opts.JSON {
