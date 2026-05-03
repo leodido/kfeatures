@@ -151,6 +151,36 @@ assert d['error']['message'] == 'unknown tool', d
     done
 }
 
+@test "mcp: --json outputs are compact (no indent or stray newlines) inside result.content" {
+    if [[ "$(uname -s)" != "Linux" ]]; then
+        skip "requires Linux for live probe"
+    fi
+    # Captured stdout is jammed verbatim into result.content[0].text;
+    # human-friendly indentation would bloat the wire format with
+    # literal "\n" and leading-space sequences. Every JSON payload from
+    # a --json invocation must arrive as a single compact line (with at
+    # most a single trailing newline from json.Encoder.Encode).
+    transcript="$(mcp_call \
+        '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
+        '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"check","arguments":{"require":"bpf-syscall","json":true}}}' \
+        '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"probe","arguments":{"json":true}}}')"
+    printf "%s\n" "$transcript" | python3 -c "
+import sys, json
+for line in sys.stdin:
+    line = line.strip()
+    if not line: continue
+    d = json.loads(line)
+    if d.get('id') in (2, 3):
+        text = d['result']['content'][0]['text']
+        # Strip the single trailing newline json.Encoder.Encode emits.
+        body = text.rstrip('\n')
+        assert '\n' not in body, f'id {d[\"id\"]}: payload contains newline (indented?): {text!r}'
+        assert '  ' not in body, f'id {d[\"id\"]}: payload contains 2-space indent: {text!r}'
+        # Sanity: it parses as JSON.
+        json.loads(body)
+"
+}
+
 @test "mcp: stdout is JSON-RPC only, no leakage from command handlers" {
     if [[ "$(uname -s)" != "Linux" ]]; then
         skip "requires Linux for live probe"
