@@ -13,6 +13,7 @@ jobs:
   goreleaser:
     permissions:
       contents: write # for goreleaser/goreleaser-action to create a GitHub release
+      id-token: write # for cosign keyless signing via GitHub OIDC (see .goreleaser.yaml signs:)
     runs-on: ubuntu-latest
     steps:
       - name: Check out the source code
@@ -28,6 +29,9 @@ jobs:
         with:
           go-version: 1.24
           check-latest: true
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
 
       - name: Release
         uses: goreleaser/goreleaser-action@5742e2a039330cbb23ebf35f046f814d4c6ff811 # v5.1.0

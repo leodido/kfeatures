@@ -24,6 +24,27 @@ builds:
       - amd64
       - arm64
 
+# Cosign keyless signing via GitHub Actions OIDC. Each artifact (the
+# tarballs and the checksums file) gets its own .sigstore.json bundle
+# containing the signature, the certificate (with the workflow's OIDC
+# identity baked in), and the Rekor inclusion proof — all in a single
+# self-contained file. End users verify with `cosign verify-blob
+# --bundle <name>.sigstore.json --certificate-identity=...
+# --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+# <name>` (see README "Verifying releases"). Requires `id-token: write`
+# permission on the release workflow so the runner can mint the OIDC
+# token cosign uses as the keyless identity.
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: all
+    output: true
+
 # Docs at https://goreleaser.com/customization/changelog
 changelog:
   use: github-native

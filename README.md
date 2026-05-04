@@ -61,9 +61,23 @@ Other Go projects ([libbpfgo](https://github.com/aquasecurity/libbpfgo), [Tetrag
 
 ## Installation
 
+Library:
+
 ```bash
 go get github.com/leodido/kfeatures
 ```
+
+CLI binary (Linux amd64 / arm64):
+
+```bash
+# Replace VERSION (e.g. 0.5.1) and ARCH (amd64 or arm64).
+curl -sSLO "https://github.com/leodido/kfeatures/releases/download/v${VERSION}/kfeatures_${VERSION}_linux_${ARCH}.tar.gz"
+tar xzf "kfeatures_${VERSION}_linux_${ARCH}.tar.gz"
+./kfeatures version
+```
+
+For supply-chain verification of the binary before extracting, see
+[Verifying releases](#verifying-releases) below.
 
 ## Usage
 
@@ -341,6 +355,33 @@ called out explicitly in [CHANGELOG.md](CHANGELOG.md). The `FromELF` contract
 - Linux for runtime probing/checking (uses Linux-specific syscalls and sysfs).
 - `FromELF` is parser-only and works on any platform.
 - Some probes require `CAP_BPF` or `CAP_SYS_ADMIN`.
+
+## Verifying releases
+
+Every release artifact (each platform tarball and the `checksums.txt`) is
+signed with [cosign](https://github.com/sigstore/cosign) keyless signing
+backed by GitHub's OIDC token. Each artifact has a sibling
+`<artifact>.sigstore.json` bundle containing the signature, the signing
+certificate (with the workflow identity baked in), and the Rekor
+transparency-log inclusion proof.
+
+To verify before extracting (replace `VERSION` and `ARCH`):
+
+```bash
+curl -sSLO "https://github.com/leodido/kfeatures/releases/download/v${VERSION}/kfeatures_${VERSION}_linux_${ARCH}.tar.gz"
+curl -sSLO "https://github.com/leodido/kfeatures/releases/download/v${VERSION}/kfeatures_${VERSION}_linux_${ARCH}.tar.gz.sigstore.json"
+
+cosign verify-blob \
+  --bundle "kfeatures_${VERSION}_linux_${ARCH}.tar.gz.sigstore.json" \
+  --certificate-identity "https://github.com/leodido/kfeatures/.github/workflows/release.yaml@refs/tags/v${VERSION}" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  "kfeatures_${VERSION}_linux_${ARCH}.tar.gz"
+```
+
+A successful verification proves that the artifact was produced by the
+`release.yaml` workflow at the tagged revision, signed by GitHub's OIDC
+issuer, and is recorded on the public Rekor transparency log. Requires
+cosign v2.0+.
 
 ## Contributing
 

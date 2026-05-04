@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Releases: every artifact (per-platform tarballs and `checksums.txt`) is now signed with [cosign](https://github.com/sigstore/cosign) keyless signing backed by GitHub's OIDC token. Each artifact has a sibling `<artifact>.sigstore.json` bundle containing the signature, certificate (with the workflow identity baked in), and Rekor transparency-log inclusion proof. Verifying a download is a single `cosign verify-blob --bundle ...` invocation; see the new [Verifying releases](README.md#verifying-releases) section in the README for the exact commands. Requires cosign v2.0+ on the verifier side.
+
 ## [0.5.0] - 2026-05-03
 
 ### Added
