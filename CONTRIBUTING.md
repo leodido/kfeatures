@@ -22,10 +22,11 @@ Requirement items consumed by `Check(...)`:
 - `FeatureGroup`: reusable preset of requirements (also returned by `FromELF`)
 - `RequireProgramType(...)`, `RequireMapType(...)`, `RequireProgramHelper(...)`: parameterized workload requirements
 - `RequireMount(path, magic)`: parameterized filesystem-mount gate; magic comes from `golang.org/x/sys/unix` (e.g. `unix.BPF_FS_MAGIC`)
+- `RequireMinKernel(major, minor)`: parameterized minimum-kernel-version gate; composes with the helper/prog-type/map-type kernel-version snapshot maintained under `internal/kernelversions`
 - `FromELF(path)`: producer of requirement items in the same model (program/map types + helper-per-program requirements)
+- `ProbeELF(path)` / `ProbeELFWith(path, opts...)`: full ELF snapshot (`*ELFProbes`) with optional CO-RE classification; `Requirements()` projects to a `FeatureGroup`
 
-`FromELF` is parser-only and available cross-platform; runtime probing/checking
-remains Linux-specific.
+`FromELF`, `ProbeELF`, and `ProbeELFWith` are parser-only and available cross-platform; runtime probing/checking remains Linux-specific.
 
 ## Feature-addition review checklist
 
@@ -53,6 +54,20 @@ The `FromELF` API is frozen against the following contract:
 4. Unknown/unsupported ELF kinds are fail-closed (return an error, never silently ignore).
 
 Changes to any of these points require explicit discussion in the PR and a CHANGELOG entry under a new minor version.
+
+`ProbeELF` is the strict superset: it returns a richer `*ELFProbes` snapshot (warnings, memory-access summaries, CO-RE classification when opted in) and lets callers project to the same `FeatureGroup` shape via `Requirements()`. New extraction surface (additional warning rules, additional CO-RE classifications) belongs on `ProbeELF`; `FromELF` stays frozen against the four contract points above.
+
+## Kernel-version snapshot (`internal/kernelversions`)
+
+The helper / program-type / map-type minimum-kernel-version tables are generated, not hand-edited. The generator (`internal/kernelversions/cmd/kvgen`) parses BCC's `docs/kernel-versions.md` and Linux UAPI `include/uapi/linux/bpf.h` at pinned commits, cross-validates that every `BPF_FUNC_*` / `BPF_PROG_TYPE_*` / `BPF_MAP_TYPE_*` enum value in UAPI has a corresponding row in the BCC table, and emits `source.json` plus `tables.go`.
+
+Workflow:
+
+- **Routine refresh**: `.github/workflows/refresh-kernel-versions.yml` runs weekly, resolves upstream HEAD for both repos, rewrites the `defaultBCCCommit` / `defaultKernelCommit` constants in `cmd/kvgen/main.go`, regenerates the snapshot, and opens a PR labelled `dependencies` if the output drifted.
+- **Manual refresh**: `go generate ./internal/kernelversions/...` from a clean checkout.
+- **Cross-validation failure**: when UAPI ships a new symbol before BCC documents it (or vice versa), the generator returns an error. Decide between waiting for BCC to catch up and adding the symbol to the audited allow-list in `internal/kernelversions/cmd/kvgen/known_gaps.go` with a one-line rationale; never silence the validator wholesale.
+
+Do not commit hand-edited changes to `source.json` or `tables.go`. The auto-refresh PR is the only sanctioned path.
 
 ## CLI conventions
 
@@ -107,10 +122,20 @@ When introducing a new subcommand, default to exposing it. Only exclude after th
 ## Development workflow
 
 ```bash
-make test       # unit tests
-make lint       # go vet + golangci-lint
-make build      # build the CLI
+make test         # unit tests
+make lint         # go vet + golangci-lint
+make build        # build the CLI
+make cover        # produce coverage.out
+make cover-check  # enforce per-file coverage threshold
 ```
+
+### Coverage gate
+
+`make cover-check` runs the test suite with `-coverprofile=coverage.out` and then runs `internal/tools/covercheck` against that profile, failing if any gated source file falls below `COVER_THRESHOLD` (default `90`). The list of gated files lives in the `COVER_FILES` makefile variable.
+
+The checker honours a single-line `// coverage:ignore` marker placed in the doc comment of a function declaration (or of a `var foo = func(...)` declaration). The marker excludes every statement attributed to that function from both the numerator and the denominator. Use it sparingly and only for code that is genuinely impossible to cover from the unit-test environment (network-bound `main` entrypoints, disk-bound wrappers like `ProbeELFWith` whose branches are exercised through programmatic fixtures against the inner helper). Every marker should carry a one-line justification immediately above it.
+
+When you add a new feature file, append it to `COVER_FILES` in the makefile and bring it up to threshold in the same PR. Internal tools (`internal/tools/covercheck`, `internal/kernelversions/cmd/kvgen`) are intentionally excluded from the gate: their happy paths are exercised by the scheduled refresh workflow against live network data.
 
 Integration tests (real `unix.Statfs` / `unix.Mount`) are gated behind a build
 tag and a dedicated CI job:
