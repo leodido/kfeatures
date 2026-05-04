@@ -154,6 +154,26 @@ When you change CLI behaviour, the corresponding bats file must be updated in th
 
 Run locally with `bats test/`. The full suite must stay green before committing.
 
+## Coverage gate (`make cover-check`)
+
+`make cover-check` runs the test suite, captures a profile, and refuses to pass if any file listed in `COVER_FILES` (in the makefile) falls below 90%. Wire any new public/library file into `COVER_FILES` in the same PR that introduces it.
+
+To skip a function from the gate's denominator, put a single line `// coverage:ignore` in its doc comment (works for both `func` declarations and `var foo = func(...)`). Skip only code that genuinely cannot be reached from the unit-test environment; never paper over a real coverage gap with a marker. Always pair the marker with a one-line justification on the line above it.
+
+The checker source lives in `internal/tools/covercheck/main.go`. Do not bypass it by editing `COVER_THRESHOLD` per-file; raise it through tests instead.
+
+## Kernel-version snapshot (`internal/kernelversions`)
+
+The tables under `internal/kernelversions` (helpers, program types, map types → minimum kernel version) are **generated**. Do not hand-edit `source.json` or `tables.go`.
+
+When you need to update them:
+
+- Routine refresh: `.github/workflows/refresh-kernel-versions.yml` runs weekly and opens a PR if upstream BCC / Linux drift produces a different snapshot. Let the bot do it.
+- Manual refresh during development: `go generate ./internal/kernelversions/...` (network-bound; fetches at the pinned commits in `internal/kernelversions/cmd/kvgen/main.go`). Override the pins with `--bcc-commit=...` / `--kernel-commit=...` only when reproducing a specific drift.
+- Cross-validation failures (a UAPI symbol without a BCC row, or vice versa) are intentional: the generator refuses to emit a partial snapshot. Resolve by either (a) waiting for BCC to catch up, or (b) adding the symbol to `internal/kernelversions/cmd/kvgen/known_gaps.go` with a one-line rationale. Never widen the validator.
+
+The library reads the snapshot through `internal/kernelversions.HelperKernelVersion`, `MapTypeKernelVersion`, `ProgramTypeKernelVersion`. New consumers (e.g. follow-up `Require*` constructors) should go through these helpers; do not import `tables.go` directly.
+
 ## Commits and PRs
 
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`,
