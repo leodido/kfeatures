@@ -77,12 +77,15 @@ assert 'tools' in r['capabilities'], r
         '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
         '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}')"
     response="$(mcp_response_by_id 2 "$transcript")"
-    # probe / check / config exposed; version + completion-* excluded.
+    # check / config / probe-host / probe-bpf exposed; bare 'probe' is a
+    # parent with subcommands and is auto-excluded by structcli's MCP
+    # registry (see structcli mcp.go:309 shouldIncludeMCPCommand).
+    # version + completion-* are also excluded.
     echo "$response" | python3 -c "
 import sys, json
 d = json.loads(sys.stdin.read())
 names = sorted(t['name'] for t in d['result']['tools'])
-assert names == ['check', 'config', 'probe'], names
+assert names == ['check', 'config', 'probe-bpf', 'probe-host'], names
 "
 }
 
@@ -143,7 +146,7 @@ assert d['error']['message'] == 'unknown tool', d
         '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
         '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"check","arguments":{"require":"bpf-syscall","json":true}}}' \
         '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"check","arguments":{"require":"nonexistent"}}}' \
-        '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"probe","arguments":{"json":true}}}')"
+        '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"probe-host","arguments":{"json":true}}}')"
     # All three tools/call responses must be present and well-formed.
     for id in 2 3 4; do
         response="$(mcp_response_by_id "$id" "$transcript")"
@@ -163,7 +166,7 @@ assert d['error']['message'] == 'unknown tool', d
     transcript="$(mcp_call \
         '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
         '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"check","arguments":{"require":"bpf-syscall","json":true}}}' \
-        '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"probe","arguments":{"json":true}}}')"
+        '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"probe-host","arguments":{"json":true}}}')"
     printf "%s\n" "$transcript" | python3 -c "
 import sys, json
 for line in sys.stdin:

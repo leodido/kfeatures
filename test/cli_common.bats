@@ -18,7 +18,21 @@ setup_file() {
 @test "help: probe subcommand" {
     run "$KFEATURES_BIN" probe --help
     assert_success
-    assert_output --partial "Probe all kernel features"
+    assert_output --partial "probe host"
+    assert_output --partial "probe bpf"
+}
+
+@test "help: probe host leaf" {
+    run "$KFEATURES_BIN" probe host --help
+    assert_success
+    assert_output --partial "Probe the running kernel"
+}
+
+@test "help: probe bpf leaf" {
+    run "$KFEATURES_BIN" probe bpf --help
+    assert_success
+    assert_output --partial "Probe a compiled eBPF ELF object"
+    assert_output --partial "--with-core"
 }
 
 @test "help: check subcommand" {

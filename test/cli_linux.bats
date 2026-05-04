@@ -34,6 +34,32 @@ setup_file() {
     echo "$output" | python3 -c "import sys,json; json.load(sys.stdin)"
 }
 
+@test "probe host: bare and explicit forms produce identical leading output" {
+    run "$KFEATURES_BIN" probe
+    assert_success
+    bare_first=$(echo "$output" | head -1)
+    run "$KFEATURES_BIN" probe host
+    assert_success
+    host_first=$(echo "$output" | head -1)
+    [[ "$bare_first" == "$host_first" ]]
+}
+
+@test "probe host --json: produces valid JSON" {
+    run "$KFEATURES_BIN" probe host --json
+    assert_success
+    echo "$output" | python3 -c "import sys,json; json.load(sys.stdin)"
+}
+
+@test "probe bpf: missing arg fails" {
+    run "$KFEATURES_BIN" probe bpf
+    [[ "$status" -ne 0 ]]
+}
+
+@test "probe bpf: nonexistent file fails cleanly" {
+    run "$KFEATURES_BIN" probe bpf /nonexistent/path.bpf.o
+    [[ "$status" -ne 0 ]]
+}
+
 # --- check ---
 
 @test "check: bpf-syscall is satisfied" {
