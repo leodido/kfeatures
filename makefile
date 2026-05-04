@@ -12,7 +12,25 @@ TEST_FLAGS ?=
 
 .DEFAULT_GOAL := help
 
-.PHONY: help deps verify-deps vet generate build test clean all
+COVER_PROFILE ?= coverage.out
+COVER_THRESHOLD ?= 90
+# Files gated by `cover-check`. Globs match the basename of each entry
+# in the coverage profile; extend this list when a new feature ships
+# with its own files (see CONTRIBUTING.md → Coverage gate).
+#
+# Scoping note: the gate covers public/library files only. Internal
+# tools (kvgen, covercheck) have informational coverage via `make
+# cover` but are not gated, because their happy paths are exercised by
+# the scheduled refresh workflow against live network data.
+COVER_FILES ?= \
+	probe_elf.go \
+	probe_elf_extract.go \
+	probe_elf_core.go \
+	probe_elf_warnings.go \
+	requirement_min_kernel.go \
+	internal/kernelversions/kernelversions.go
+
+.PHONY: help deps verify-deps vet generate build test clean all cover cover-check
 
 help: ## Show available targets.
 	@if command -v $(AWK) >/dev/null 2>&1; then \
@@ -48,6 +66,15 @@ build: generate ## Build the CLI binary.
 
 test: ## Run the test suite.
 	$(GO) test $(TEST_FLAGS) $(PKG)
+
+cover: ## Produce a coverage profile at $(COVER_PROFILE).
+	$(GO) test -covermode=atomic -coverprofile=$(COVER_PROFILE) $(PKG)
+
+cover-check: cover ## Enforce per-file coverage threshold on gated files.
+	@$(GO) run ./internal/tools/covercheck \
+		--profile=$(COVER_PROFILE) \
+		--threshold=$(COVER_THRESHOLD) \
+		$(foreach f,$(COVER_FILES),--file=$(f))
 
 clean: ## Remove build artifacts.
 	rm -rf $(BIN_DIR)
