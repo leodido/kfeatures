@@ -1,0 +1,2196 @@
+{
+  "bcc_commit": "91c1e8ee5f5a5b85d3bfe8e35d11fa0a6d3b5e52",
+  "kernel_commit": "c7e4e4d5f7dc2daa439303d1b5bf6bdfaa249f49",
+  "helpers": [
+    {
+      "uapi": "BPF_FUNC_bind",
+      "go": "FnBind",
+      "version": {
+        "Major": 4,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_bprm_opts_set",
+      "go": "FnBprmOptsSet",
+      "version": {
+        "Major": 5,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_btf_find_by_name_kind",
+      "go": "FnBtfFindByNameKind",
+      "version": {
+        "Major": 5,
+        "Minor": 14
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_cgrp_storage_delete",
+      "go": "FnCgrpStorageDelete",
+      "version": {
+        "Major": 6,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_cgrp_storage_get",
+      "go": "FnCgrpStorageGet",
+      "version": {
+        "Major": 6,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_check_mtu",
+      "go": "FnCheckMtu",
+      "version": {
+        "Major": 5,
+        "Minor": 12
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_clone_redirect",
+      "go": "FnCloneRedirect",
+      "version": {
+        "Major": 4,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_copy_from_user",
+      "go": "FnCopyFromUser",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_copy_from_user_task",
+      "go": "FnCopyFromUserTask",
+      "version": {
+        "Major": 5,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_csum_diff",
+      "go": "FnCsumDiff",
+      "version": {
+        "Major": 4,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_csum_level",
+      "go": "FnCsumLevel",
+      "version": {
+        "Major": 5,
+        "Minor": 7
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_csum_update",
+      "go": "FnCsumUpdate",
+      "version": {
+        "Major": 4,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_current_task_under_cgroup",
+      "go": "FnCurrentTaskUnderCgroup",
+      "version": {
+        "Major": 4,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_d_path",
+      "go": "FnDPath",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_dynptr_data",
+      "go": "FnDynptrData",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_dynptr_from_mem",
+      "go": "FnDynptrFromMem",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_dynptr_read",
+      "go": "FnDynptrRead",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_dynptr_write",
+      "go": "FnDynptrWrite",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_fib_lookup",
+      "go": "FnFibLookup",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_find_vma",
+      "go": "FnFindVma",
+      "version": {
+        "Major": 5,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_for_each_map_elem",
+      "go": "FnForEachMapElem",
+      "version": {
+        "Major": 5,
+        "Minor": 13
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_attach_cookie",
+      "go": "FnGetAttachCookie",
+      "version": {
+        "Major": 5,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_branch_snapshot",
+      "go": "FnGetBranchSnapshot",
+      "version": {
+        "Major": 5,
+        "Minor": 16
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_cgroup_classid",
+      "go": "FnGetCgroupClassid",
+      "version": {
+        "Major": 4,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_current_ancestor_cgroup_id",
+      "go": "FnGetCurrentAncestorCgroupId",
+      "version": {
+        "Major": 5,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_current_cgroup_id",
+      "go": "FnGetCurrentCgroupId",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_current_comm",
+      "go": "FnGetCurrentComm",
+      "version": {
+        "Major": 4,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_current_pid_tgid",
+      "go": "FnGetCurrentPidTgid",
+      "version": {
+        "Major": 4,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_current_task",
+      "go": "FnGetCurrentTask",
+      "version": {
+        "Major": 4,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_current_task_btf",
+      "go": "FnGetCurrentTaskBtf",
+      "version": {
+        "Major": 5,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_current_uid_gid",
+      "go": "FnGetCurrentUidGid",
+      "version": {
+        "Major": 4,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_func_arg",
+      "go": "FnGetFuncArg",
+      "version": {
+        "Major": 5,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_func_arg_cnt",
+      "go": "FnGetFuncArgCnt",
+      "version": {
+        "Major": 5,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_func_ip",
+      "go": "FnGetFuncIp",
+      "version": {
+        "Major": 5,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_func_ret",
+      "go": "FnGetFuncRet",
+      "version": {
+        "Major": 5,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_hash_recalc",
+      "go": "FnGetHashRecalc",
+      "version": {
+        "Major": 4,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_listener_sock",
+      "go": "FnGetListenerSock",
+      "version": {
+        "Major": 5,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_local_storage",
+      "go": "FnGetLocalStorage",
+      "version": {
+        "Major": 4,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_netns_cookie",
+      "go": "FnGetNetnsCookie",
+      "version": {
+        "Major": 5,
+        "Minor": 7
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_ns_current_pid_tgid",
+      "go": "FnGetNsCurrentPidTgid",
+      "version": {
+        "Major": 5,
+        "Minor": 7
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_numa_node_id",
+      "go": "FnGetNumaNodeId",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_prandom_u32",
+      "go": "FnGetPrandomU32",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_retval",
+      "go": "FnGetRetval",
+      "version": {
+        "Major": 5,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_route_realm",
+      "go": "FnGetRouteRealm",
+      "version": {
+        "Major": 4,
+        "Minor": 4
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_smp_processor_id",
+      "go": "FnGetSmpProcessorId",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_socket_cookie",
+      "go": "FnGetSocketCookie",
+      "version": {
+        "Major": 4,
+        "Minor": 12
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_socket_uid",
+      "go": "FnGetSocketUid",
+      "version": {
+        "Major": 4,
+        "Minor": 12
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_stack",
+      "go": "FnGetStack",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_stackid",
+      "go": "FnGetStackid",
+      "version": {
+        "Major": 4,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_get_task_stack",
+      "go": "FnGetTaskStack",
+      "version": {
+        "Major": 5,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_getsockopt",
+      "go": "FnGetsockopt",
+      "version": {
+        "Major": 4,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ima_file_hash",
+      "go": "FnImaFileHash",
+      "version": {
+        "Major": 5,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ima_inode_hash",
+      "go": "FnImaInodeHash",
+      "version": {
+        "Major": 5,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_inode_storage_delete",
+      "go": "FnInodeStorageDelete",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_inode_storage_get",
+      "go": "FnInodeStorageGet",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_jiffies64",
+      "go": "FnJiffies64",
+      "version": {
+        "Major": 5,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_kallsyms_lookup_name",
+      "go": "FnKallsymsLookupName",
+      "version": {
+        "Major": 5,
+        "Minor": 16
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_kptr_xchg",
+      "go": "FnKptrXchg",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ktime_get_boot_ns",
+      "go": "FnKtimeGetBootNs",
+      "version": {
+        "Major": 5,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ktime_get_coarse_ns",
+      "go": "FnKtimeGetCoarseNs",
+      "version": {
+        "Major": 5,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ktime_get_ns",
+      "go": "FnKtimeGetNs",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ktime_get_tai_ns",
+      "go": "FnKtimeGetTaiNs",
+      "version": {
+        "Major": 6,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_l3_csum_replace",
+      "go": "FnL3CsumReplace",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_l4_csum_replace",
+      "go": "FnL4CsumReplace",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_load_hdr_opt",
+      "go": "FnLoadHdrOpt",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_loop",
+      "go": "FnLoop",
+      "version": {
+        "Major": 5,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_lwt_push_encap",
+      "go": "FnLwtPushEncap",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_lwt_seg6_action",
+      "go": "FnLwtSeg6Action",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_lwt_seg6_adjust_srh",
+      "go": "FnLwtSeg6AdjustSrh",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_lwt_seg6_store_bytes",
+      "go": "FnLwtSeg6StoreBytes",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_map_delete_elem",
+      "go": "FnMapDeleteElem",
+      "version": {
+        "Major": 3,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_map_lookup_elem",
+      "go": "FnMapLookupElem",
+      "version": {
+        "Major": 3,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_map_lookup_percpu_elem",
+      "go": "FnMapLookupPercpuElem",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_map_peek_elem",
+      "go": "FnMapPeekElem",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_map_pop_elem",
+      "go": "FnMapPopElem",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_map_push_elem",
+      "go": "FnMapPushElem",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_map_update_elem",
+      "go": "FnMapUpdateElem",
+      "version": {
+        "Major": 3,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_msg_apply_bytes",
+      "go": "FnMsgApplyBytes",
+      "version": {
+        "Major": 4,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_msg_cork_bytes",
+      "go": "FnMsgCorkBytes",
+      "version": {
+        "Major": 4,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_msg_pop_data",
+      "go": "FnMsgPopData",
+      "version": {
+        "Major": 5,
+        "Minor": 0
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_msg_pull_data",
+      "go": "FnMsgPullData",
+      "version": {
+        "Major": 4,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_msg_push_data",
+      "go": "FnMsgPushData",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_msg_redirect_hash",
+      "go": "FnMsgRedirectHash",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_msg_redirect_map",
+      "go": "FnMsgRedirectMap",
+      "version": {
+        "Major": 4,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_override_return",
+      "go": "FnOverrideReturn",
+      "version": {
+        "Major": 4,
+        "Minor": 16
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_per_cpu_ptr",
+      "go": "FnPerCpuPtr",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_perf_event_output",
+      "go": "FnPerfEventOutput",
+      "version": {
+        "Major": 4,
+        "Minor": 4
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_perf_event_read",
+      "go": "FnPerfEventRead",
+      "version": {
+        "Major": 4,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_perf_event_read_value",
+      "go": "FnPerfEventReadValue",
+      "version": {
+        "Major": 4,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_perf_prog_read_value",
+      "go": "FnPerfProgReadValue",
+      "version": {
+        "Major": 4,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_probe_read",
+      "go": "FnProbeRead",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_probe_read_kernel",
+      "go": "FnProbeReadKernel",
+      "version": {
+        "Major": 5,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_probe_read_kernel_str",
+      "go": "FnProbeReadKernelStr",
+      "version": {
+        "Major": 5,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_probe_read_str",
+      "go": "FnProbeReadStr",
+      "version": {
+        "Major": 4,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_probe_read_user",
+      "go": "FnProbeReadUser",
+      "version": {
+        "Major": 5,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_probe_read_user_str",
+      "go": "FnProbeReadUserStr",
+      "version": {
+        "Major": 5,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_probe_write_user",
+      "go": "FnProbeWriteUser",
+      "version": {
+        "Major": 4,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_rc_keydown",
+      "go": "FnRcKeydown",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_rc_pointer_rel",
+      "go": "FnRcPointerRel",
+      "version": {
+        "Major": 5,
+        "Minor": 0
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_rc_repeat",
+      "go": "FnRcRepeat",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_read_branch_records",
+      "go": "FnReadBranchRecords",
+      "version": {
+        "Major": 5,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_redirect",
+      "go": "FnRedirect",
+      "version": {
+        "Major": 4,
+        "Minor": 4
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_redirect_map",
+      "go": "FnRedirectMap",
+      "version": {
+        "Major": 4,
+        "Minor": 14
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_redirect_neigh",
+      "go": "FnRedirectNeigh",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_redirect_peer",
+      "go": "FnRedirectPeer",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_reserve_hdr_opt",
+      "go": "FnReserveHdrOpt",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ringbuf_discard",
+      "go": "FnRingbufDiscard",
+      "version": {
+        "Major": 5,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ringbuf_discard_dynptr",
+      "go": "FnRingbufDiscardDynptr",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ringbuf_output",
+      "go": "FnRingbufOutput",
+      "version": {
+        "Major": 5,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ringbuf_query",
+      "go": "FnRingbufQuery",
+      "version": {
+        "Major": 5,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ringbuf_reserve",
+      "go": "FnRingbufReserve",
+      "version": {
+        "Major": 5,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ringbuf_reserve_dynptr",
+      "go": "FnRingbufReserveDynptr",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ringbuf_submit",
+      "go": "FnRingbufSubmit",
+      "version": {
+        "Major": 5,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_ringbuf_submit_dynptr",
+      "go": "FnRingbufSubmitDynptr",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_send_signal",
+      "go": "FnSendSignal",
+      "version": {
+        "Major": 5,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_send_signal_thread",
+      "go": "FnSendSignalThread",
+      "version": {
+        "Major": 5,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_seq_printf",
+      "go": "FnSeqPrintf",
+      "version": {
+        "Major": 5,
+        "Minor": 7
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_seq_printf_btf",
+      "go": "FnSeqPrintfBtf",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_seq_write",
+      "go": "FnSeqWrite",
+      "version": {
+        "Major": 5,
+        "Minor": 7
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_set_hash",
+      "go": "FnSetHash",
+      "version": {
+        "Major": 4,
+        "Minor": 13
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_set_hash_invalid",
+      "go": "FnSetHashInvalid",
+      "version": {
+        "Major": 4,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_set_retval",
+      "go": "FnSetRetval",
+      "version": {
+        "Major": 5,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_setsockopt",
+      "go": "FnSetsockopt",
+      "version": {
+        "Major": 4,
+        "Minor": 13
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_ancestor_cgroup_id",
+      "go": "FnSkAncestorCgroupId",
+      "version": {
+        "Major": 5,
+        "Minor": 7
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_assign",
+      "go": "FnSkAssign",
+      "version": {
+        "Major": 5,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_cgroup_id",
+      "go": "FnSkCgroupId",
+      "version": {
+        "Major": 5,
+        "Minor": 7
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_fullsock",
+      "go": "FnSkFullsock",
+      "version": {
+        "Major": 5,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_lookup_tcp",
+      "go": "FnSkLookupTcp",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_lookup_udp",
+      "go": "FnSkLookupUdp",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_redirect_hash",
+      "go": "FnSkRedirectHash",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_redirect_map",
+      "go": "FnSkRedirectMap",
+      "version": {
+        "Major": 4,
+        "Minor": 14
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_release",
+      "go": "FnSkRelease",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_select_reuseport",
+      "go": "FnSkSelectReuseport",
+      "version": {
+        "Major": 4,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_storage_delete",
+      "go": "FnSkStorageDelete",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sk_storage_get",
+      "go": "FnSkStorageGet",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_adjust_room",
+      "go": "FnSkbAdjustRoom",
+      "version": {
+        "Major": 4,
+        "Minor": 13
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_ancestor_cgroup_id",
+      "go": "FnSkbAncestorCgroupId",
+      "version": {
+        "Major": 4,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_cgroup_classid",
+      "go": "FnSkbCgroupClassid",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_cgroup_id",
+      "go": "FnSkbCgroupId",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_change_head",
+      "go": "FnSkbChangeHead",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_change_proto",
+      "go": "FnSkbChangeProto",
+      "version": {
+        "Major": 4,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_change_tail",
+      "go": "FnSkbChangeTail",
+      "version": {
+        "Major": 4,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_change_type",
+      "go": "FnSkbChangeType",
+      "version": {
+        "Major": 4,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_ecn_set_ce",
+      "go": "FnSkbEcnSetCe",
+      "version": {
+        "Major": 5,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_get_tunnel_key",
+      "go": "FnSkbGetTunnelKey",
+      "version": {
+        "Major": 4,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_get_tunnel_opt",
+      "go": "FnSkbGetTunnelOpt",
+      "version": {
+        "Major": 4,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_get_xfrm_state",
+      "go": "FnSkbGetXfrmState",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_load_bytes",
+      "go": "FnSkbLoadBytes",
+      "version": {
+        "Major": 4,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_load_bytes_relative",
+      "go": "FnSkbLoadBytesRelative",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_output",
+      "go": "FnSkbOutput",
+      "version": {
+        "Major": 5,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_pull_data",
+      "go": "FnSkbPullData",
+      "version": {
+        "Major": 4,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_set_tstamp",
+      "go": "FnSkbSetTstamp",
+      "version": {
+        "Major": 5,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_set_tunnel_key",
+      "go": "FnSkbSetTunnelKey",
+      "version": {
+        "Major": 4,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_set_tunnel_opt",
+      "go": "FnSkbSetTunnelOpt",
+      "version": {
+        "Major": 4,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_store_bytes",
+      "go": "FnSkbStoreBytes",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_under_cgroup",
+      "go": "FnSkbUnderCgroup",
+      "version": {
+        "Major": 4,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_vlan_pop",
+      "go": "FnSkbVlanPop",
+      "version": {
+        "Major": 4,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skb_vlan_push",
+      "go": "FnSkbVlanPush",
+      "version": {
+        "Major": 4,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skc_lookup_tcp",
+      "go": "FnSkcLookupTcp",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skc_to_mctcp_sock",
+      "go": "FnSkcToMctcpSock",
+      "version": {
+        "Major": 5,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skc_to_tcp6_sock",
+      "go": "FnSkcToTcp6Sock",
+      "version": {
+        "Major": 5,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skc_to_tcp_request_sock",
+      "go": "FnSkcToTcpRequestSock",
+      "version": {
+        "Major": 5,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skc_to_tcp_sock",
+      "go": "FnSkcToTcpSock",
+      "version": {
+        "Major": 5,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skc_to_tcp_timewait_sock",
+      "go": "FnSkcToTcpTimewaitSock",
+      "version": {
+        "Major": 5,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skc_to_udp6_sock",
+      "go": "FnSkcToUdp6Sock",
+      "version": {
+        "Major": 5,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_skc_to_unix_sock",
+      "go": "FnSkcToUnixSock",
+      "version": {
+        "Major": 5,
+        "Minor": 16
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_snprintf",
+      "go": "FnSnprintf",
+      "version": {
+        "Major": 5,
+        "Minor": 13
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_snprintf_btf",
+      "go": "FnSnprintfBtf",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sock_from_file",
+      "go": "FnSockFromFile",
+      "version": {
+        "Major": 5,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sock_hash_update",
+      "go": "FnSockHashUpdate",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sock_map_update",
+      "go": "FnSockMapUpdate",
+      "version": {
+        "Major": 4,
+        "Minor": 14
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sock_ops_cb_flags_set",
+      "go": "FnSockOpsCbFlagsSet",
+      "version": {
+        "Major": 4,
+        "Minor": 16
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_spin_lock",
+      "go": "FnSpinLock",
+      "version": {
+        "Major": 5,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_spin_unlock",
+      "go": "FnSpinUnlock",
+      "version": {
+        "Major": 5,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_store_hdr_opt",
+      "go": "FnStoreHdrOpt",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_strncmp",
+      "go": "FnStrncmp",
+      "version": {
+        "Major": 5,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_strtol",
+      "go": "FnStrtol",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_strtoul",
+      "go": "FnStrtoul",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sys_bpf",
+      "go": "FnSysBpf",
+      "version": {
+        "Major": 5,
+        "Minor": 14
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sys_close",
+      "go": "FnSysClose",
+      "version": {
+        "Major": 5,
+        "Minor": 14
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sysctl_get_current_value",
+      "go": "FnSysctlGetCurrentValue",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sysctl_get_name",
+      "go": "FnSysctlGetName",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sysctl_get_new_value",
+      "go": "FnSysctlGetNewValue",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_sysctl_set_new_value",
+      "go": "FnSysctlSetNewValue",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_tail_call",
+      "go": "FnTailCall",
+      "version": {
+        "Major": 4,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_task_pt_regs",
+      "go": "FnTaskPtRegs",
+      "version": {
+        "Major": 5,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_task_storage_delete",
+      "go": "FnTaskStorageDelete",
+      "version": {
+        "Major": 5,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_task_storage_get",
+      "go": "FnTaskStorageGet",
+      "version": {
+        "Major": 5,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_tcp_check_syncookie",
+      "go": "FnTcpCheckSyncookie",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_tcp_gen_syncookie",
+      "go": "FnTcpGenSyncookie",
+      "version": {
+        "Major": 5,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_tcp_raw_check_syncookie_ipv4",
+      "go": "FnTcpRawCheckSyncookieIpv4",
+      "version": {
+        "Major": 6,
+        "Minor": 0
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_tcp_raw_check_syncookie_ipv6",
+      "go": "FnTcpRawCheckSyncookieIpv6",
+      "version": {
+        "Major": 6,
+        "Minor": 0
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_tcp_raw_gen_syncookie_ipv4",
+      "go": "FnTcpRawGenSyncookieIpv4",
+      "version": {
+        "Major": 6,
+        "Minor": 0
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_tcp_raw_gen_syncookie_ipv6",
+      "go": "FnTcpRawGenSyncookieIpv6",
+      "version": {
+        "Major": 6,
+        "Minor": 0
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_tcp_send_ack",
+      "go": "FnTcpSendAck",
+      "version": {
+        "Major": 5,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_tcp_sock",
+      "go": "FnTcpSock",
+      "version": {
+        "Major": 5,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_this_cpu_ptr",
+      "go": "FnThisCpuPtr",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_timer_cancel",
+      "go": "FnTimerCancel",
+      "version": {
+        "Major": 5,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_timer_init",
+      "go": "FnTimerInit",
+      "version": {
+        "Major": 5,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_timer_set_callback",
+      "go": "FnTimerSetCallback",
+      "version": {
+        "Major": 5,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_timer_start",
+      "go": "FnTimerStart",
+      "version": {
+        "Major": 5,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_trace_printk",
+      "go": "FnTracePrintk",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_trace_vprintk",
+      "go": "FnTraceVprintk",
+      "version": {
+        "Major": 5,
+        "Minor": 16
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_user_ringbuf_drain",
+      "go": "FnUserRingbufDrain",
+      "version": {
+        "Major": 6,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_xdp_adjust_head",
+      "go": "FnXdpAdjustHead",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_xdp_adjust_meta",
+      "go": "FnXdpAdjustMeta",
+      "version": {
+        "Major": 4,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_xdp_adjust_tail",
+      "go": "FnXdpAdjustTail",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_xdp_get_buff_len",
+      "go": "FnXdpGetBuffLen",
+      "version": {
+        "Major": 5,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_xdp_load_bytes",
+      "go": "FnXdpLoadBytes",
+      "version": {
+        "Major": 5,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_xdp_output",
+      "go": "FnXdpOutput",
+      "version": {
+        "Major": 5,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_FUNC_xdp_store_bytes",
+      "go": "FnXdpStoreBytes",
+      "version": {
+        "Major": 5,
+        "Minor": 18
+      }
+    }
+  ],
+  "program_types": [
+    {
+      "uapi": "BPF_PROG_TYPE_CGROUP_DEVICE",
+      "go": "CGroupDevice",
+      "version": {
+        "Major": 4,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_CGROUP_SKB",
+      "go": "CGroupSKB",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_CGROUP_SOCK",
+      "go": "CGroupSock",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_CGROUP_SOCKOPT",
+      "go": "CGroupSockopt",
+      "version": {
+        "Major": 5,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_CGROUP_SOCK_ADDR",
+      "go": "CGroupSockAddr",
+      "version": {
+        "Major": 4,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_CGROUP_SYSCTL",
+      "go": "CGroupSysctl",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_EXT",
+      "go": "Extension",
+      "version": {
+        "Major": 5,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_FLOW_DISSECTOR",
+      "go": "FlowDissector",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_KPROBE",
+      "go": "Kprobe",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_LIRC_MODE2",
+      "go": "LircMode2",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_LSM",
+      "go": "LSM",
+      "version": {
+        "Major": 5,
+        "Minor": 7
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_LWT_IN",
+      "go": "LWTIn",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_LWT_OUT",
+      "go": "LWTOut",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_LWT_SEG6LOCAL",
+      "go": "LWTSeg6Local",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_LWT_XMIT",
+      "go": "LWTXmit",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_PERF_EVENT",
+      "go": "PerfEvent",
+      "version": {
+        "Major": 4,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_RAW_TRACEPOINT",
+      "go": "RawTracepoint",
+      "version": {
+        "Major": 4,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE",
+      "go": "RawTracepointWritable",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_SCHED_ACT",
+      "go": "SchedACT",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_SCHED_CLS",
+      "go": "SchedCLS",
+      "version": {
+        "Major": 4,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_SK_LOOKUP",
+      "go": "SkLookup",
+      "version": {
+        "Major": 5,
+        "Minor": 9
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_SK_MSG",
+      "go": "SkMsg",
+      "version": {
+        "Major": 4,
+        "Minor": 17
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_SK_REUSEPORT",
+      "go": "SkReuseport",
+      "version": {
+        "Major": 4,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_SK_SKB",
+      "go": "SkSKB",
+      "version": {
+        "Major": 4,
+        "Minor": 14
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_SOCKET_FILTER",
+      "go": "SocketFilter",
+      "version": {
+        "Major": 3,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_SOCK_OPS",
+      "go": "SockOps",
+      "version": {
+        "Major": 4,
+        "Minor": 13
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_STRUCT_OPS",
+      "go": "StructOps",
+      "version": {
+        "Major": 5,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_SYSCALL",
+      "go": "Syscall",
+      "version": {
+        "Major": 5,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_TRACEPOINT",
+      "go": "TracePoint",
+      "version": {
+        "Major": 4,
+        "Minor": 7
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_TRACING",
+      "go": "Tracing",
+      "version": {
+        "Major": 5,
+        "Minor": 5
+      }
+    },
+    {
+      "uapi": "BPF_PROG_TYPE_XDP",
+      "go": "XDP",
+      "version": {
+        "Major": 4,
+        "Minor": 8
+      }
+    }
+  ],
+  "map_types": [
+    {
+      "uapi": "BPF_MAP_TYPE_ARRAY",
+      "go": "Array",
+      "version": {
+        "Major": 3,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_ARRAY_OF_MAPS",
+      "go": "ArrayOfMaps",
+      "version": {
+        "Major": 4,
+        "Minor": 12
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_BLOOM_FILTER",
+      "go": "BloomFilter",
+      "version": {
+        "Major": 5,
+        "Minor": 16
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_CGROUP_ARRAY",
+      "go": "CGroupArray",
+      "version": {
+        "Major": 4,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_CGROUP_STORAGE",
+      "go": "CGroupStorage",
+      "version": {
+        "Major": 4,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_CPUMAP",
+      "go": "CPUMap",
+      "version": {
+        "Major": 4,
+        "Minor": 15
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_DEVMAP",
+      "go": "DevMap",
+      "version": {
+        "Major": 4,
+        "Minor": 14
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_DEVMAP_HASH",
+      "go": "DevMapHash",
+      "version": {
+        "Major": 5,
+        "Minor": 4
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_HASH",
+      "go": "Hash",
+      "version": {
+        "Major": 3,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_HASH_OF_MAPS",
+      "go": "HashOfMaps",
+      "version": {
+        "Major": 4,
+        "Minor": 12
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_INODE_STORAGE",
+      "go": "InodeStorage",
+      "version": {
+        "Major": 5,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_LPM_TRIE",
+      "go": "LPMTrie",
+      "version": {
+        "Major": 4,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_LRU_HASH",
+      "go": "LRUHash",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_LRU_PERCPU_HASH",
+      "go": "LRUCPUHash",
+      "version": {
+        "Major": 4,
+        "Minor": 10
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_PERCPU_ARRAY",
+      "go": "PerCPUArray",
+      "version": {
+        "Major": 4,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE",
+      "go": "PerCPUCGroupStorage",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_PERCPU_HASH",
+      "go": "PerCPUHash",
+      "version": {
+        "Major": 4,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_PERF_EVENT_ARRAY",
+      "go": "PerfEventArray",
+      "version": {
+        "Major": 4,
+        "Minor": 3
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_PROG_ARRAY",
+      "go": "ProgramArray",
+      "version": {
+        "Major": 4,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_QUEUE",
+      "go": "Queue",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_REUSEPORT_SOCKARRAY",
+      "go": "ReusePortSockArray",
+      "version": {
+        "Major": 4,
+        "Minor": 19
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_RINGBUF",
+      "go": "RingBuf",
+      "version": {
+        "Major": 5,
+        "Minor": 8
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_SK_STORAGE",
+      "go": "SkStorage",
+      "version": {
+        "Major": 5,
+        "Minor": 2
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_SOCKHASH",
+      "go": "SockHash",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_SOCKMAP",
+      "go": "SockMap",
+      "version": {
+        "Major": 4,
+        "Minor": 14
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_STACK",
+      "go": "Stack",
+      "version": {
+        "Major": 4,
+        "Minor": 20
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_STACK_TRACE",
+      "go": "StackTrace",
+      "version": {
+        "Major": 4,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_STRUCT_OPS",
+      "go": "StructOpsMap",
+      "version": {
+        "Major": 5,
+        "Minor": 6
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_TASK_STORAGE",
+      "go": "TaskStorage",
+      "version": {
+        "Major": 5,
+        "Minor": 11
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_USER_RINGBUF",
+      "go": "UserRingbuf",
+      "version": {
+        "Major": 6,
+        "Minor": 1
+      }
+    },
+    {
+      "uapi": "BPF_MAP_TYPE_XSKMAP",
+      "go": "XSKMap",
+      "version": {
+        "Major": 4,
+        "Minor": 18
+      }
+    }
+  ],
+  "generated_by": "internal/kernelversions/cmd/kvgen",
+  "notes": "Generated. Do not edit by hand. Run `go generate ./internal/kernelversions/...`."
+}
