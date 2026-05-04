@@ -1,0 +1,120 @@
+name: refresh-kernel-versions
+
+# Re-runs kvgen against the latest iovisor/bcc and torvalds/linux HEAD
+# commits and opens a PR if the snapshot under internal/kernelversions
+# drifted. Kept on its own schedule so the noise of upstream churn does
+# not pollute the regular CI signal on main.
+
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC. Cheap enough; UAPI helpers and BCC docs
+    # change rarely, so most runs will be a no-op.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      bcc-commit:
+        description: "Override iovisor/bcc commit SHA (defaults to HEAD)"
+        required: false
+        default: ""
+      kernel-commit:
+        description: "Override torvalds/linux commit SHA (defaults to HEAD)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    name: regenerate kernel-version snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        with:
+          go-version: "1.24"
+
+      - name: Resolve upstream HEAD commits
+        id: pins
+        run: |
+          set -eu
+          bcc="${{ inputs.bcc-commit }}"
+          if [ -z "$bcc" ]; then
+            bcc=$(git ls-remote https://github.com/iovisor/bcc HEAD | awk '{print $1}')
+          fi
+          kernel="${{ inputs.kernel-commit }}"
+          if [ -z "$kernel" ]; then
+            kernel=$(git ls-remote https://github.com/torvalds/linux HEAD | awk '{print $1}')
+          fi
+          echo "bcc=$bcc"       >> "$GITHUB_OUTPUT"
+          echo "kernel=$kernel" >> "$GITHUB_OUTPUT"
+          echo "Resolved BCC    -> $bcc"
+          echo "Resolved kernel -> $kernel"
+
+      - name: Bump pinned default commits in kvgen
+        run: |
+          set -eu
+          file=internal/kernelversions/cmd/kvgen/main.go
+          sed -i \
+            -e 's|^\(\s*defaultBCCCommit\s*=\s*\)"[0-9a-f]\{40\}"|\1"${{ steps.pins.outputs.bcc }}"|' \
+            -e 's|^\(\s*defaultKernelCommit\s*=\s*\)"[0-9a-f]\{40\}"|\1"${{ steps.pins.outputs.kernel }}"|' \
+            "$file"
+          grep -E 'defaultBCCCommit|defaultKernelCommit' "$file"
+
+      - name: Regenerate snapshot
+        run: |
+          go generate ./internal/kernelversions/...
+
+      - name: Verify build still passes
+        run: |
+          go vet ./...
+          go test ./internal/kernelversions/...
+
+      - name: Detect drift
+        id: drift
+        run: |
+          if git diff --quiet -- internal/kernelversions; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No snapshot drift; nothing to do."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- internal/kernelversions
+          fi
+
+      - name: Open PR
+        if: steps.drift.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
+        with:
+          branch: chore/refresh-kernel-versions
+          delete-branch: true
+          # Conventional-commit prefix `deps(kernelversions):` lets
+          # .github/workflows/labeler.yml route the PR into the
+          # `dependencies` bucket of release notes.
+          title: "deps(kernelversions): refresh BCC + UAPI snapshot"
+          commit-message: |
+            deps(kernelversions): refresh BCC + UAPI snapshot
+
+            BCC    pin -> ${{ steps.pins.outputs.bcc }}
+            kernel pin -> ${{ steps.pins.outputs.kernel }}
+          body: |
+            Automated refresh of `internal/kernelversions` against the
+            latest upstream sources.
+
+            - **iovisor/bcc**: `${{ steps.pins.outputs.bcc }}`
+            - **torvalds/linux**: `${{ steps.pins.outputs.kernel }}`
+
+            Regenerated via `go generate ./internal/kernelversions/...`.
+            Verified with `go vet ./...` and the kernelversions test
+            package; full CI runs on this PR.
+
+            Review the diff in `internal/kernelversions/source.json`
+            and `internal/kernelversions/tables.go`. New helpers /
+            program types / map types appearing in upstream UAPI but
+            not yet in BCC's table will surface as cross-validation
+            failures here; in that case, decide between waiting for
+            BCC to catch up and adding the symbol to the audited
+            allow-list in `internal/kernelversions/cmd/kvgen/known_gaps.go`.
+          labels: |
+            dependencies
