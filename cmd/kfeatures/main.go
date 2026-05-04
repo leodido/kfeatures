@@ -296,9 +296,41 @@ func renderELFProbesText(c *cobra.Command, probes *kfeatures.ELFProbes, withFrom
 	}
 }
 
+// assembleCheckRequirements turns CheckOptions into the flat slice of
+// kfeatures.Requirement values that gets handed to kfeatures.Check.
+//
+// The caller must have set at least one of opts.Require or opts.FromELF;
+// otherwise an error is returned. When --from-elf is set the function
+// reads the ELF eagerly so any parse error is surfaced before Check.
+func assembleCheckRequirements(opts *CheckOptions) ([]kfeatures.Requirement, error) {
+	if len(opts.Require) == 0 && opts.FromELF == "" {
+		return nil, fmt.Errorf("no features specified: pass --require and/or --from-elf")
+	}
+	out := make([]kfeatures.Requirement, 0, len(opts.Require))
+	for _, f := range opts.Require {
+		out = append(out, f)
+	}
+	if opts.FromELF != "" {
+		group, err := kfeatures.FromELF(opts.FromELF)
+		if err != nil {
+			return nil, fmt.Errorf("from-elf %q: %w", opts.FromELF, err)
+		}
+		for _, r := range group {
+			out = append(out, r)
+		}
+	}
+	return out, nil
+}
+
 // CheckOptions defines flags for the check subcommand.
+//
+// Require and FromELF are alternative requirement sources: at least one
+// must be set, and they may be combined (the union of both is gated). The
+// `flagrequired:"true"` tag on Require is removed in main()'s probe-of-
+// arguments path because --from-elf alone is sufficient.
 type CheckOptions struct {
-	Require featureRequirements `flag:"require" flagshort:"r" flagdescr:"Required features (see available features above)" flagrequired:"true" flagcustom:"true"`
+	Require featureRequirements `flag:"require" flagshort:"r" flagdescr:"Required features (see available features above)" flagcustom:"true"`
+	FromELF string              `flag:"from-elf" flagdescr:"Path to a compiled eBPF ELF object; gates on the FeatureGroup derived from it"`
 	JSON    bool                `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
@@ -366,16 +398,12 @@ func checkCmd() *cobra.Command {
 		Short: "Check specific kernel feature requirements",
 		Long:  checkLongDescription(),
 		RunE: func(c *cobra.Command, args []string) error {
-			if len(opts.Require) == 0 {
-				return fmt.Errorf("no features specified")
+			requirements, err := assembleCheckRequirements(opts)
+			if err != nil {
+				return err
 			}
 
-			requirements := make([]kfeatures.Requirement, 0, len(opts.Require))
-			for _, f := range opts.Require {
-				requirements = append(requirements, f)
-			}
-
-			err := kfeatures.Check(requirements...)
+			err = kfeatures.Check(requirements...)
 			if err != nil {
 				// FeatureError is a business outcome, not an invocation
 				// error: --json emits the documented {ok,feature,reason}
