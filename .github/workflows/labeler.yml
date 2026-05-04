@@ -20,6 +20,7 @@ jobs:
               'feat':     'enhancement',
               'fix':      'bug',
               'docs':     'documentation',
+              'deps':     'dependencies',
               'chore':    'chore',
               'refactor': 'enhancement',
               'test':     'chore',
@@ -28,18 +29,29 @@ jobs:
               'perf':     'enhancement',
             };
 
-            // Match "type:" or "type(scope):"
-            const match = title.match(/^(\w+)(?:\([^)]*\))?!?:/);
+            // Match "type:" or "type(scope):" (also captures the scope)
+            const match = title.match(/^(\w+)(?:\(([^)]*)\))?!?:/);
             if (!match) {
               core.info('No conventional commit prefix found, skipping');
               return;
             }
 
             const prefix = match[1].toLowerCase();
-            const label = prefixMap[prefix];
+            const scope = (match[2] || '').toLowerCase();
+            let label = prefixMap[prefix];
             if (!label) {
               core.info(`Unknown prefix "${prefix}", skipping`);
               return;
+            }
+
+            // Scope-aware override: dep-bump tooling (Dependabot,
+            // Renovate) emits `chore(deps):` or `build(deps):` by
+            // default, and humans sometimes write `fix(deps):` when
+            // a CVE drives the bump. Re-route any `*(deps):` into
+            // the dependencies bucket so they don't get muted by
+            // the chore exclusion in .github/release.yml.
+            if (scope === 'deps' || scope === 'dependencies') {
+              label = 'dependencies';
             }
 
             // Check for breaking change indicator
@@ -48,7 +60,7 @@ jobs:
               labels.push('breaking-change');
             }
 
-            core.info(`Prefix "${prefix}" → labels: ${labels.join(', ')}`);
+            core.info(`Prefix "${prefix}" scope "${scope}" → labels: ${labels.join(', ')}`);
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
