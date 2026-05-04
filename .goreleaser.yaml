@@ -1,3 +1,7 @@
+# GoReleaser config schema version. v2 is the current major; without
+# this header `goreleaser check` warns about an unknown legacy schema.
+version: 2
+
 release:
   prerelease: auto
   draft: false
