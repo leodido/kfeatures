@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Releases: every artifact (per-platform tarballs and `checksums.txt`) is now signed with [cosign](https://github.com/sigstore/cosign) keyless signing backed by GitHub's OIDC token. Each artifact has a sibling `<artifact>.sigstore.json` bundle containing the signature, certificate (with the workflow identity baked in), and Rekor transparency-log inclusion proof. Verifying a download is a single `cosign verify-blob --bundle ...` invocation; see the new [Verifying releases](README.md#verifying-releases) section in the README for the exact commands. Requires cosign v2.0+ on the verifier side.
 
+### Fixed
+
+- `LICENSE`: replaced with the verbatim canonical Apache 2.0 text from <https://www.apache.org/licenses/LICENSE-2.0.txt>. The previous file had small body-text deviations (`to the Licensor` instead of `to Licensor`, `excluding any notices` instead of `excluding those notices`, missing leading newline, missing `APPENDIX: How to apply the Apache License to your work.` section) and substituted `[yyyy]` / `[name of copyright owner]` inline with `2026` / `Leonardo Di Donato`. Together those edits dropped the file to ~6% match against [google/licensecheck](https://github.com/google/licensecheck)'s Apache-2.0 template (well below the 75% confidence floor), so [pkg.go.dev](https://pkg.go.dev/github.com/leodido/kfeatures) classified the module as `License: UNKNOWN`, hid the documentation behind a license-policy notice, marked `Redistributable license` as failed, and refused to compute the `Imported by` graph. With the canonical text restored, licensecheck reports 100% Apache-2.0 coverage. The change takes effect on pkg.go.dev once the next tagged version is published (the `v0.5.0` snapshot is immutable).
+
 ## [0.5.0] - 2026-05-03
 
 ### Added
