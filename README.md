@@ -390,4 +390,13 @@ feature-addition checklist, and the development workflow.
 
 ## License
 
-[Apache License 2.0](LICENSE).
+[Apache License 2.0](LICENSE). Project attribution in [NOTICE](NOTICE), per Apache 2.0 §4(d).
+
+### Why Apache 2.0
+
+`kfeatures` is pure-Go userspace. No kernel source embedded, no cgo, no GPL/LGPL deps. Kernel interaction is uABI only: reads from `/proc` and `/sys`, syscalls and constants via [`golang.org/x/sys/unix`](https://pkg.go.dev/golang.org/x/sys/unix) (BSD-3-Clause), ELF parsing via [`github.com/cilium/ebpf`](https://pkg.go.dev/github.com/cilium/ebpf) (MIT; never calls `BPF_PROG_LOAD`). The kernel's `COPYING` carves "user programs that use kernel services by normal system calls" out of GPL: the carve-out `ps`, `ls`, and `mount` rely on.
+
+Apache 2.0 over MIT:
+
+- Patent grant (§3). Probing eBPF, LSM, IMA, namespaces, and Spectre mitigations is patent-adjacent. Apache 2.0 grants an irrevocable patent license with defensive termination. MIT has none.
+- Adopter alignment. Cilium, Tetragon, Tracee, Falco, Pixie, and Inspektor Gadget are Apache 2.0. No compatibility review needed.
