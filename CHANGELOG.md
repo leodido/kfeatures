@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Releases: every artifact (per-platform tarballs and `checksums.txt`) is now signed with [cosign](https://github.com/sigstore/cosign) keyless signing backed by GitHub's OIDC token. Each artifact has a sibling `<artifact>.sigstore.json` bundle containing the signature, certificate (with the workflow identity baked in), and Rekor transparency-log inclusion proof. Verifying a download is a single `cosign verify-blob --bundle ...` invocation; see the new [Verifying releases](README.md#verifying-releases) section in the README for the exact commands. Requires cosign v2.0+ on the verifier side.
+- `NOTICE` file at repo root carrying the `Copyright 2026 Leonardo Di Donato` attribution. Apache 2.0 distinguishes the license text (canonical, verbatim, in `LICENSE`) from project-level attribution (in a `NOTICE` file that downstream consumers must propagate). The previous setup folded the copyright line into `LICENSE` itself; that conflated the two and is one of the deviations that caused licensecheck to mis-classify the file (see corresponding `### Fixed` entry).
 
 ### Fixed
 
