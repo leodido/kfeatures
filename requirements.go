@@ -107,12 +107,14 @@ type requirementSet struct {
 	mapTypes       []ebpf.MapType
 	programHelpers []ProgramHelperRequirement
 	mounts         []MountRequirement
+	minKernels     []MinKernelRequirement
 
 	seenFeatures       map[Feature]struct{}
 	seenProgramTypes   map[ebpf.ProgramType]struct{}
 	seenMapTypes       map[ebpf.MapType]struct{}
 	seenProgramHelpers map[ProgramHelperRequirement]struct{}
 	seenMounts         map[MountRequirement]struct{}
+	seenMinKernels     map[MinKernelRequirement]struct{}
 }
 
 func normalizeRequirements(required []Requirement) requirementSet {
@@ -122,6 +124,7 @@ func normalizeRequirements(required []Requirement) requirementSet {
 		seenMapTypes:       map[ebpf.MapType]struct{}{},
 		seenProgramHelpers: map[ProgramHelperRequirement]struct{}{},
 		seenMounts:         map[MountRequirement]struct{}{},
+		seenMinKernels:     map[MinKernelRequirement]struct{}{},
 	}
 	for _, req := range required {
 		rs.add(req)
@@ -168,5 +171,11 @@ func (rs *requirementSet) add(req Requirement) {
 		}
 		rs.seenMounts[r] = struct{}{}
 		rs.mounts = append(rs.mounts, r)
+	case MinKernelRequirement:
+		if _, ok := rs.seenMinKernels[r]; ok {
+			return
+		}
+		rs.seenMinKernels[r] = struct{}{}
+		rs.minKernels = append(rs.minKernels, r)
 	}
 }

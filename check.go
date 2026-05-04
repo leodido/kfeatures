@@ -93,6 +93,16 @@ func Check(required ...Requirement) error {
 		}
 	}
 
+	for _, mk := range rs.minKernels {
+		if err := mk.satisfiedBy(sf.KernelVersion); err != nil {
+			return &FeatureError{
+				Feature: mk.String(),
+				Reason:  err.Error(),
+				Err:     err,
+			}
+		}
+	}
+
 	return nil
 }
 
