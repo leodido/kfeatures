@@ -448,9 +448,16 @@ func ReadIMARuntimeMeasurementsCount() (int, error) {
 	return readMeasurementCount()
 }
 
-// readMeasurementCount reads the IMA runtime measurement count.
+// readMeasurementCount reads the IMA runtime measurement count from the
+// default path.
 func readMeasurementCount() (int, error) {
-	data, err := os.ReadFile(imaMeasurementCountPath)
+	return readMeasurementCountFrom(imaMeasurementCountPath)
+}
+
+// readMeasurementCountFrom reads an IMA runtime measurement count from the
+// given path. Separated from readMeasurementCount for testability.
+func readMeasurementCountFrom(path string) (int, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
 	}
