@@ -13,9 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `NOTICE` file at repo root carrying the `Copyright 2026 Leonardo Di Donato` attribution. Apache 2.0 distinguishes the license text (canonical, verbatim, in `LICENSE`) from project-level attribution (in a `NOTICE` file that downstream consumers must propagate). The previous setup folded the copyright line into `LICENSE` itself; that conflated the two and is one of the deviations that caused licensecheck to mis-classify the file (see corresponding `### Fixed` entry).
 - README License section: "Why Apache 2.0" paragraph. Documents the kernel-uABI posture (no kernel source, no cgo, no GPL deps; `/proc` and `/sys` reads fall under the kernel `COPYING` "normal syscalls" carve-out) and the Apache-2.0-over-MIT rationale (patent grant for security-adjacent probing; same-license adopter base of Cilium, Tetragon, Falco, etc.).
 
-### Changed
+### Breaking
 
-- Renamed `FeatureIMAMeasurementActive` → `FeatureIMAAnyMeasurementActive`, `ProbeIMAMeasurementActive()` → `ProbeIMAAnyMeasurementActive()`, and the `SystemFeatures.IMAMeasurementActive` field → `IMAAnyMeasurementActive`. The previous name implied the probe identified which `func=` rule was active; the new name clarifies it only detects that at least one measurement rule has fired. The CLI feature name changes from `ima-measurement-active` to `ima-any-measurement-active`. The `String()` output now includes the `IMA any measurement active` line in the Security Subsystems section.
+- Renamed `FeatureIMAMeasurementActive` → `FeatureIMAAnyMeasurementActive`, `ProbeIMAMeasurementActive()` → `ProbeIMAAnyMeasurementActive()`, and the `SystemFeatures.IMAMeasurementActive` field → `IMAAnyMeasurementActive`. The previous name implied the probe identified which `func=` rule was active; the new name clarifies it only detects that at least one IMA measurement has occurred. The CLI feature name changes from `ima-measurement-active` to `ima-any-measurement-active`. The `String()` output now includes the `IMA any measurement active` line in the Security Subsystems section.
 
 ### Fixed
 

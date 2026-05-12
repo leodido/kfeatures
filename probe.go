@@ -407,14 +407,13 @@ func ProbeIMAAnyMeasurementActive() ProbeResult {
 	return probeIMAAnyMeasurementActive()
 }
 
-// probeIMAAnyMeasurementActive checks whether IMA has an active measurement
-// policy by reading the runtime measurement count. A count > 1 (beyond the
-// boot_aggregate entry) means at least one measurement rule is active.
+// probeIMAAnyMeasurementActive checks whether at least one IMA measurement
+// has occurred by reading the runtime measurement count. A count > 1 (beyond
+// the boot_aggregate entry) means at least one measurement has fired.
 //
 // When the count is exactly 1, the probe executes /bin/true and re-reads
-// the count. An increase confirms a measurement rule covering exec
-// (e.g., func=BPRM_CHECK) is present, but does not distinguish which
-// specific func= rule triggered the measurement.
+// the count. An increase confirms a measurement covering exec occurred,
+// but does not distinguish which specific func= rule triggered it.
 func probeIMAAnyMeasurementActive() ProbeResult {
 	before, err := readMeasurementCount()
 	if err != nil {
