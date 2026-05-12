@@ -51,13 +51,13 @@ const (
 	FeatureUnprivilegedBPFDisabled
 	// FeatureBPFStatsEnabled is a Feature of type Bpf-Stats-Enabled.
 	FeatureBPFStatsEnabled
-	// FeatureIMAMeasurementActive is a Feature of type Ima-Measurement-Active.
-	FeatureIMAMeasurementActive
+	// FeatureIMAAnyMeasurementActive is a Feature of type Ima-Any-Measurement-Active.
+	FeatureIMAAnyMeasurementActive
 )
 
 var ErrInvalidFeature = fmt.Errorf("not a valid Feature, try [%s]", strings.Join(_FeatureNames, ", "))
 
-const _FeatureName = "bpf-lsmbtfimakprobekprobe-multifentrytracepointcap-bpfcap-sys-admincap-perfmonjit-enabledjit-hardenedbpf-syscallperf-event-opensleepable-bpftrace-fsbpf-fsinit-user-nsunprivileged-bpf-disabledbpf-stats-enabledima-measurement-active"
+const _FeatureName = "bpf-lsmbtfimakprobekprobe-multifentrytracepointcap-bpfcap-sys-admincap-perfmonjit-enabledjit-hardenedbpf-syscallperf-event-opensleepable-bpftrace-fsbpf-fsinit-user-nsunprivileged-bpf-disabledbpf-stats-enabledima-any-measurement-active"
 
 var _FeatureNames = []string{
 	_FeatureName[0:7],
@@ -80,7 +80,7 @@ var _FeatureNames = []string{
 	_FeatureName[154:166],
 	_FeatureName[166:191],
 	_FeatureName[191:208],
-	_FeatureName[208:230],
+	_FeatureName[208:234],
 }
 
 // FeatureNames returns a list of possible string values of Feature.
@@ -113,7 +113,7 @@ func FeatureValues() []Feature {
 		FeatureInitUserNS,
 		FeatureUnprivilegedBPFDisabled,
 		FeatureBPFStatsEnabled,
-		FeatureIMAMeasurementActive,
+		FeatureIMAAnyMeasurementActive,
 	}
 }
 
@@ -138,7 +138,7 @@ var _FeatureMap = map[Feature]string{
 	FeatureInitUserNS:              _FeatureName[154:166],
 	FeatureUnprivilegedBPFDisabled: _FeatureName[166:191],
 	FeatureBPFStatsEnabled:         _FeatureName[191:208],
-	FeatureIMAMeasurementActive:    _FeatureName[208:230],
+	FeatureIMAAnyMeasurementActive: _FeatureName[208:234],
 }
 
 // String implements the Stringer interface.
@@ -197,8 +197,8 @@ var _FeatureValue = map[string]Feature{
 	strings.ToLower(_FeatureName[166:191]): FeatureUnprivilegedBPFDisabled,
 	_FeatureName[191:208]:                  FeatureBPFStatsEnabled,
 	strings.ToLower(_FeatureName[191:208]): FeatureBPFStatsEnabled,
-	_FeatureName[208:230]:                  FeatureIMAMeasurementActive,
-	strings.ToLower(_FeatureName[208:230]): FeatureIMAMeasurementActive,
+	_FeatureName[208:234]:                  FeatureIMAAnyMeasurementActive,
+	strings.ToLower(_FeatureName[208:234]): FeatureIMAAnyMeasurementActive,
 }
 
 // ParseFeature attempts to convert a string to a Feature.

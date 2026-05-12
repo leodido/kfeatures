@@ -111,8 +111,8 @@ func (sf *SystemFeatures) Result(f Feature) (ProbeResult, bool) {
 		return sf.BTF, true
 	case FeatureIMA:
 		return sf.IMAEnabled, true
-	case FeatureIMAMeasurementActive:
-		return sf.IMAMeasurementActive, true
+	case FeatureIMAAnyMeasurementActive:
+		return sf.IMAAnyMeasurementActive, true
 	case FeatureKprobe:
 		return sf.Kprobe, true
 	case FeatureKprobeMulti:
@@ -197,14 +197,14 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 		if kc != nil && !kc.IMA.IsEnabled() {
 			return "CONFIG_IMA not set; rebuild kernel with CONFIG_IMA=y"
 		}
-	case FeatureIMAMeasurementActive:
-		if sf.IMAMeasurementActive.Error != nil {
-			return fmt.Sprintf("unable to read IMA measurement count from %s: %v", imaMeasurementCountPath, sf.IMAMeasurementActive.Error)
+	case FeatureIMAAnyMeasurementActive:
+		if sf.IMAAnyMeasurementActive.Error != nil {
+			return fmt.Sprintf("unable to read IMA measurement count from %s: %v", imaMeasurementCountPath, sf.IMAAnyMeasurementActive.Error)
 		}
 		if !sf.IMAEnabled.Supported {
 			return "IMA is not in the active LSM list; enable IMA first (lsm=...,ima in kernel boot params)"
 		}
-		return "IMA measurement is not active; write a measurement rule (e.g., 'measure func=BPRM_CHECK') to /sys/kernel/security/ima/policy"
+		return "no IMA measurement rule has fired; write a measurement rule (e.g., 'measure func=BPRM_CHECK') to /sys/kernel/security/ima/policy"
 	case FeatureCapBPF:
 		return "missing CAP_BPF; run with CAP_BPF or as root"
 	case FeatureCapSysAdmin:
@@ -273,7 +273,7 @@ func probeOptionsFor(reqs []Feature) []ProbeOption {
 		case FeatureBPFLSM:
 			needSecurity = true
 			programTypes = append(programTypes, ebpf.LSM)
-		case FeatureIMA, FeatureIMAMeasurementActive:
+		case FeatureIMA, FeatureIMAAnyMeasurementActive:
 			needSecurity = true
 		case FeatureKprobe:
 			programTypes = append(programTypes, ebpf.Kprobe)
