@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README License section: "Why Apache 2.0" paragraph. Documents the kernel-uABI posture (no kernel source, no cgo, no GPL deps; `/proc` and `/sys` reads fall under the kernel `COPYING` "normal syscalls" carve-out) and the Apache-2.0-over-MIT rationale (patent grant for security-adjacent probing; same-license adopter base of Cilium, Tetragon, Falco, etc.).
 - `ReadIMARuntimeMeasurementsCount()`: exported helper that reads `/sys/kernel/security/ima/runtime_measurements_count` and returns the current count. No side effects. Useful for diagnostics and for callers building their own before/after measurement probes.
 - `ProbeIMAExecMeasurementActive()`: checks whether an IMA measurement rule covering exec (e.g., `func=BPRM_CHECK`) is active by creating a fresh temporary executable (new inode), running it, and checking for a measurement count increase. No count > 1 shortcut; returns `Supported=true` only when the controlled exec stimulus increments the count. A fresh inode avoids false negatives from IMA's per-inode measurement cache.
+- `ProbeIMAFileCheckMeasurementActive()`: checks whether an IMA measurement rule covering file open (e.g., `func=FILE_CHECK`) is active by creating a fresh temporary file, rewriting it to invalidate any IMA measurement cache, then opening it `O_RDONLY` and checking for a count increase. The measurement window contains only the read-open — the canonical `FILE_CHECK` stimulus.
 
 ### Breaking
 
