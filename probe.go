@@ -4,10 +4,10 @@ package kfeatures
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -461,8 +461,5 @@ func readMeasurementCountFrom(path string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	content := strings.TrimSpace(string(data))
-	var count int
-	_, err = fmt.Sscanf(content, "%d", &count)
-	return count, err
+	return strconv.Atoi(strings.TrimSpace(string(data)))
 }
