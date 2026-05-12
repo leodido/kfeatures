@@ -442,4 +442,37 @@ func TestReadMeasurementCountFrom(t *testing.T) {
 			t.Error("expected error for missing file")
 		}
 	})
+
+	t.Run("trailing junk rejected", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "runtime_measurements_count")
+		if err := os.WriteFile(path, []byte("42abc\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		_, err := readMeasurementCountFrom(path)
+		if err == nil {
+			t.Error("expected error for trailing junk")
+		}
+	})
+}
+
+func TestExecFreshTempBinary(t *testing.T) {
+	t.Run("creates and executes successfully", func(t *testing.T) {
+		if err := execFreshTempBinary(); err != nil {
+			t.Fatalf("execFreshTempBinary() error = %v", err)
+		}
+	})
+
+	t.Run("cleans up temp directory", func(t *testing.T) {
+		// List temp dirs before and after to verify cleanup.
+		before, _ := filepath.Glob(os.TempDir() + "/kfeatures-ima-probe-*")
+		if err := execFreshTempBinary(); err != nil {
+			t.Fatalf("execFreshTempBinary() error = %v", err)
+		}
+		after, _ := filepath.Glob(os.TempDir() + "/kfeatures-ima-probe-*")
+		if len(after) > len(before) {
+			t.Errorf("temp directory not cleaned up: before=%d, after=%d", len(before), len(after))
+		}
+	})
 }
