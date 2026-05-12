@@ -204,7 +204,7 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 		if !sf.IMAEnabled.Supported {
 			return "IMA is not in the active LSM list; enable IMA first (lsm=...,ima in kernel boot params)"
 		}
-		return "no IMA measurement rule has fired; write a measurement rule (e.g., 'measure func=BPRM_CHECK') to /sys/kernel/security/ima/policy"
+		return "no IMA measurement has occurred; write a measurement rule (e.g., 'measure func=BPRM_CHECK') to /sys/kernel/security/ima/policy"
 	case FeatureCapBPF:
 		return "missing CAP_BPF; run with CAP_BPF or as root"
 	case FeatureCapSysAdmin:

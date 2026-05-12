@@ -41,7 +41,7 @@ Neither tells you whether your tool can **actually run**. For example, BPF LSM r
 | **Active LSM list** (`/sys/kernel/security/lsm`) | ✗ | ✗ | ✓ |
 | **BPF LSM enabled** (config + boot params + program type) | ✗ | ✗ | ✓ |
 | **IMA detection** (LSM list + securityfs directory) | ✗ | ✗ | ✓ |
-| **IMA any measurement active** (runtime policy detection) | ✗ | ✗ | ✓ |
+| **IMA any measurement active** (runtime measurement activity) | ✗ | ✗ | ✓ |
 | **Process capabilities** (CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON) | ✗ | ✗ | ✓ |
 | **Unprivileged BPF status** | ✗ | ✓ | ✓ |
 | **Mount-state gates** (bpffs/tracefs/custom paths via superblock magic) | ✗ | ✗ | ✓ |
