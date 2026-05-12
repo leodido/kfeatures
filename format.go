@@ -33,6 +33,7 @@ func (sf *SystemFeatures) String() string {
 	writeResult(&b, "  BPF LSM enabled", sf.BPFLSMEnabled)
 	writeResult(&b, "  IMA enabled", sf.IMAEnabled)
 	writeResult(&b, "  IMA directory", sf.IMADirectory)
+	writeResult(&b, "  IMA any measurement active", sf.IMAAnyMeasurementActive)
 	if len(sf.ActiveLSMs) > 0 {
 		fmt.Fprintf(&b, "  Active LSMs: %s\n", strings.Join(sf.ActiveLSMs, ", "))
 	}

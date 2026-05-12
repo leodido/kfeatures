@@ -41,7 +41,7 @@ Neither tells you whether your tool can **actually run**. For example, BPF LSM r
 | **Active LSM list** (`/sys/kernel/security/lsm`) | ✗ | ✗ | ✓ |
 | **BPF LSM enabled** (config + boot params + program type) | ✗ | ✗ | ✓ |
 | **IMA detection** (LSM list + securityfs directory) | ✗ | ✗ | ✓ |
-| **IMA active measurement** (runtime policy detection) | ✗ | ✗ | ✓ |
+| **IMA any measurement active** (runtime policy detection) | ✗ | ✗ | ✓ |
 | **Process capabilities** (CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON) | ✗ | ✗ | ✓ |
 | **Unprivileged BPF status** | ✗ | ✓ | ✓ |
 | **Mount-state gates** (bpffs/tracefs/custom paths via superblock magic) | ✗ | ✗ | ✓ |
@@ -210,6 +210,7 @@ Security Subsystems:
   BPF LSM enabled: yes
   IMA enabled: no
   IMA directory: yes
+  IMA any measurement active: no
   Active LSMs: lockdown, capability, yama, apparmor, bpf
 
 Filesystems:
@@ -331,7 +332,7 @@ Tools exposed: `probe`, `check`, `config`. The server stays alive across busines
 |---|---|
 | Program types | LSM, kprobe, kprobe.multi, tracepoint, fentry |
 | Core | BTF availability (CO-RE) |
-| Security | BPF LSM enabled, IMA enabled, IMA active measurement, active LSM list |
+| Security | BPF LSM enabled, IMA enabled, IMA any measurement active, active LSM list |
 | Capabilities and runtime gates | CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON, unprivileged BPF disabled, BPF stats enabled |
 | Syscalls | `bpf()`, `perf_event_open()` |
 | JIT | enabled, hardened, kallsyms, memory limit, `CONFIG_BPF_JIT_ALWAYS_ON` |

@@ -67,11 +67,12 @@ type SystemFeatures struct {
 	// IMADirectory indicates /sys/kernel/security/ima exists.
 	// IMA securityfs is mounted, but IMA may not be actively measuring files.
 	IMADirectory ProbeResult
-	// IMAMeasurementActive indicates IMA is actively measuring files.
+	// IMAAnyMeasurementActive indicates at least one IMA measurement rule
+	// has fired. It does not identify which func= rule caused the measurement.
 	// Checked by reading the runtime measurement count and, if needed,
 	// executing /bin/true to trigger a potential BPRM_CHECK rule.
 	// When active, IMA caches file hashes in the inode security blob.
-	IMAMeasurementActive ProbeResult
+	IMAAnyMeasurementActive ProbeResult
 
 	// Process capabilities relevant to BPF operations
 	HasCapBPF      ProbeResult // CAP_BPF (kernel 5.8+)
@@ -303,7 +304,7 @@ bpf-fs
 init-user-ns
 unprivileged-bpf-disabled
 bpf-stats-enabled
-ima-measurement-active
+ima-any-measurement-active
 )
 */
 type Feature int
