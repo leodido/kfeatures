@@ -441,6 +441,62 @@ func probeIMAAnyMeasurementActive() ProbeResult {
 	return ProbeResult{Supported: false}
 }
 
+// ProbeIMAExecMeasurementActive checks whether an IMA measurement rule
+// covering exec (e.g., func=BPRM_CHECK) is active by executing a fresh
+// temporary binary and checking for a measurement count increase.
+//
+// Unlike [ProbeIMAAnyMeasurementActive], this probe does not use a count > 1
+// shortcut. It returns Supported=true only when the controlled exec stimulus
+// increments the IMA measurement count.
+func ProbeIMAExecMeasurementActive() ProbeResult {
+	return probeIMAExecMeasurementActive()
+}
+
+// probeIMAExecMeasurementActive creates a fresh temporary executable (new
+// inode), executes it, and checks whether the IMA measurement count increased.
+// A fresh inode avoids false negatives from IMA's per-inode measurement cache.
+func probeIMAExecMeasurementActive() ProbeResult {
+	before, err := readMeasurementCount()
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+
+	if err := execFreshTempBinary(); err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+
+	after, err := readMeasurementCount()
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+
+	return ProbeResult{Supported: after > before}
+}
+
+// execFreshTempBinary creates a minimal executable in a temp directory (new
+// inode), runs it, and cleans up. The binary is a copy of /bin/true so it
+// exits 0 immediately. Using a fresh inode avoids IMA's per-inode measurement
+// cache, which would suppress a repeat measurement of /bin/true itself.
+func execFreshTempBinary() error {
+	src, err := os.ReadFile("/bin/true")
+	if err != nil {
+		return err
+	}
+
+	dir, err := os.MkdirTemp("", "kfeatures-ima-probe-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+
+	bin := dir + "/probe"
+	if err := os.WriteFile(bin, src, 0700); err != nil {
+		return err
+	}
+
+	return (&exec.Cmd{Path: bin}).Run()
+}
+
 // ReadIMARuntimeMeasurementsCount returns the current IMA runtime measurement
 // count from /sys/kernel/security/ima/runtime_measurements_count. No side
 // effects. Useful for diagnostics and for callers building before/after probes.
