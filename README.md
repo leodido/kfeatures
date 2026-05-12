@@ -44,6 +44,7 @@ Neither tells you whether your tool can **actually run**. For example, BPF LSM r
 | **IMA any measurement active** (runtime measurement activity) | ✗ | ✗ | ✓ |
 | **IMA runtime measurement count** (raw count for before/after probes) | ✗ | ✗ | ✓ |
 | **IMA exec measurement active** (fresh-inode exec probe) | ✗ | ✗ | ✓ |
+| **IMA file-check measurement active** (fresh-inode file-open probe) | ✗ | ✗ | ✓ |
 | **Process capabilities** (CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON) | ✗ | ✗ | ✓ |
 | **Unprivileged BPF status** | ✗ | ✓ | ✓ |
 | **Mount-state gates** (bpffs/tracefs/custom paths via superblock magic) | ✗ | ✗ | ✓ |
@@ -334,7 +335,7 @@ Tools exposed: `probe`, `check`, `config`. The server stays alive across busines
 |---|---|
 | Program types | LSM, kprobe, kprobe.multi, tracepoint, fentry |
 | Core | BTF availability (CO-RE) |
-| Security | BPF LSM enabled, IMA enabled, IMA any measurement active, IMA exec measurement active, active LSM list |
+| Security | BPF LSM enabled, IMA enabled, IMA any measurement active, IMA exec measurement active, IMA file-check measurement active, active LSM list |
 | Capabilities and runtime gates | CAP_BPF, CAP_SYS_ADMIN, CAP_PERFMON, unprivileged BPF disabled, BPF stats enabled |
 | Syscalls | `bpf()`, `perf_event_open()` |
 | JIT | enabled, hardened, kallsyms, memory limit, `CONFIG_BPF_JIT_ALWAYS_ON` |
