@@ -514,6 +514,76 @@ func execTempBinary(path string) error {
 	return (&exec.Cmd{Path: path}).Run()
 }
 
+// ProbeIMAFileCheckMeasurementActive checks whether an IMA measurement rule
+// covering file open (e.g., func=FILE_CHECK) is active by opening a fresh
+// temporary file and checking for a measurement count increase.
+//
+// Unlike [ProbeIMAAnyMeasurementActive], this probe does not use a count > 1
+// shortcut. It returns Supported=true only when the controlled file-open
+// stimulus increments the IMA measurement count.
+func ProbeIMAFileCheckMeasurementActive() ProbeResult {
+	return probeIMAFileCheckMeasurementActive()
+}
+
+// probeIMAFileCheckMeasurementActive creates a fresh temporary file (new
+// inode), writes content to it, then invalidates any IMA measurement cache
+// by rewriting the file. The baseline count is taken after all setup I/O,
+// and the measurement window contains only an O_RDONLY open — the canonical
+// FILE_CHECK stimulus.
+func probeIMAFileCheckMeasurementActive() ProbeResult {
+	path, cleanup, err := createFreshTempFile()
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+	defer cleanup()
+
+	// Rewrite the file to invalidate any IMA measurement cached from the
+	// initial create. IMA caches per-inode; a write invalidates the cache
+	// so the next open triggers a fresh measurement.
+	if err := os.WriteFile(path, []byte("ima-probe-stimulus\n"), 0644); err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+
+	before, err := readMeasurementCount()
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+
+	// Open O_RDONLY — this is the FILE_CHECK stimulus.
+	f, err := os.Open(path)
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+	f.Close()
+
+	after, err := readMeasurementCount()
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+
+	return ProbeResult{Supported: after > before}
+}
+
+// createFreshTempFile creates a regular file with initial content in a new
+// temp directory (fresh inode) and returns the path, a cleanup function, and
+// any error. The caller must invoke cleanup when done.
+func createFreshTempFile() (string, func(), error) {
+	noop := func() {}
+
+	dir, err := os.MkdirTemp("", "kfeatures-ima-probe-*")
+	if err != nil {
+		return "", noop, err
+	}
+
+	path := dir + "/probe-file"
+	if err := os.WriteFile(path, []byte("ima-probe-init\n"), 0644); err != nil {
+		os.RemoveAll(dir)
+		return "", noop, err
+	}
+
+	return path, func() { os.RemoveAll(dir) }, nil
+}
+
 // ReadIMARuntimeMeasurementsCount returns the current IMA runtime measurement
 // count from /sys/kernel/security/ima/runtime_measurements_count. No side
 // effects. Useful for diagnostics and for callers building before/after probes.
