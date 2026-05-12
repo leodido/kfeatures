@@ -102,41 +102,235 @@ CI/CD gating, or container runtime validation.`,
 	structcli.ExecuteOrExit(root)
 }
 
-// ProbeOptions defines flags for the probe subcommand.
-type ProbeOptions struct {
+// ProbeHostOptions defines flags for `probe host` (and the bare `probe`).
+type ProbeHostOptions struct {
 	JSON bool `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
+// probeCmd is the `probe` parent command. Bare `kfeatures probe`
+// preserves v0.5.x behaviour (live-kernel host probe) by reusing the
+// `probe host` leaf's RunE. The parent itself binds no flags (so
+// structcli's "shared flags + subcommands" check stays silent) and is
+// auto-excluded from the MCP tool registry because it has subcommands.
+//
+// Bare-invocation flag forwarding works because `probeHostLeaf` carries
+// the flag bindings; cobra's executor invokes the leaf's RunE directly
+// when the user typed `kfeatures probe --json`, treating `probe` as the
+// terminal command. (Without subcommands matching the next token, cobra
+// runs the parent's RunE; we re-issue it through the leaf to keep flag
+// definitions in one place.)
+//
+// MCP exposure: structcli only registers runnable leaves. The parent
+// `probe` is filtered (cobra subcommands present), so MCP sees
+// `probe-host` and `probe-bpf` only — no need for an explicit Exclude
+// entry.
 func probeCmd() *cobra.Command {
-	opts := &ProbeOptions{}
-
+	hostLeaf := probeHostCmd()
 	cmd := &cobra.Command{
 		Use:   "probe",
-		Short: "Probe all kernel features and display results",
+		Short: "Probe a system or an eBPF ELF object for features",
+		Long: `Probe groups two read-only diagnostic surfaces:
+
+  probe host              Probe the running kernel (default; bare 'kfeatures probe' for back-compat).
+  probe bpf <file.bpf.o>  Probe a compiled eBPF ELF object.
+
+Bare 'kfeatures probe' is equivalent to 'kfeatures probe host' and
+preserves the v0.5.x behaviour byte-for-byte.`,
+		RunE: hostLeaf.RunE,
+	}
+	// Mirror the host leaf's flag set on the parent so that
+	// `kfeatures probe --json` still parses; the leaf-level binding is
+	// the source of truth for unmarshalling.
+	cmd.Flags().AddFlagSet(hostLeaf.Flags())
+	cmd.AddCommand(hostLeaf)
+	cmd.AddCommand(probeBpfCmd())
+	return cmd
+}
+
+// runProbeHost is the shared body for `probe host` and bare `probe`.
+// Both call sites pass identical opts so the output is bit-for-bit
+// identical regardless of how the user invoked it.
+func runProbeHost(c *cobra.Command, opts *ProbeHostOptions) error {
+	sf, err := kfeatures.ProbeNoCache()
+	if err != nil {
+		return err
+	}
+	if opts.JSON {
+		return printJSON(c, sf)
+	}
+	fmt.Fprint(c.OutOrStdout(), sf)
+	return nil
+}
+
+// probeHostOpts is the shared options pointer used by both the explicit
+// `probe host` leaf and the bare `probe` parent. Sharing the same struct
+// lets `--json` (declared on either invocation surface) populate the same
+// memory, so the parent's RunE delegating to the host leaf's RunE always
+// sees the parsed value.
+//
+// Lifetime is process-global (the var is created at init time when
+// probeHostCmd is first invoked from main()). This is safe because cobra
+// runs sequentially and main() returns after Execute completes.
+var probeHostOpts = &ProbeHostOptions{}
+
+// probeHostCmd is the explicit `probe host` leaf. Functionally identical
+// to bare `kfeatures probe` and `kfeatures probe host`.
+func probeHostCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "host",
+		Short: "Probe the running kernel",
 		RunE: func(c *cobra.Command, args []string) error {
-			sf, err := kfeatures.ProbeNoCache()
+			return runProbeHost(c, probeHostOpts)
+		},
+	}
+	if err := structcli.Bind(cmd, probeHostOpts); err != nil {
+		panic(err)
+	}
+	return cmd
+}
+
+// ProbeBpfOptions defines flags for `probe bpf`.
+type ProbeBpfOptions struct {
+	JSON       bool `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
+	WithCORE   bool `flag:"with-core" flagdescr:"Run the heuristic CO-RE register-state classifier (off by default)"`
+	WithFromELF bool `flag:"requirements" flagdescr:"Also emit the FromELF FeatureGroup the same parse derives"`
+}
+
+// probeBpfCmd is the `probe bpf <file.bpf.o>` leaf. Reads an ELF file
+// from disk and emits the descriptive ELFProbes view.
+func probeBpfCmd() *cobra.Command {
+	opts := &ProbeBpfOptions{}
+	cmd := &cobra.Command{
+		Use:   "bpf <file.bpf.o>",
+		Short: "Probe a compiled eBPF ELF object",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(c *cobra.Command, args []string) error {
+			path := args[0]
+			var probeOpts []kfeatures.ELFProbeOption
+			if opts.WithCORE {
+				probeOpts = append(probeOpts, kfeatures.WithCOREChecks())
+			}
+			probes, err := kfeatures.ProbeELFWith(path, probeOpts...)
 			if err != nil {
 				return err
 			}
-
 			if opts.JSON {
-				return printJSON(c, sf)
+				if opts.WithFromELF {
+					return printJSON(c, map[string]any{
+						"probes":       probes,
+						"requirements": probes.Requirements(),
+					})
+				}
+				return printJSON(c, probes)
 			}
-
-			fmt.Fprint(c.OutOrStdout(), sf)
+			renderELFProbesText(c, probes, opts.WithFromELF)
 			return nil
 		},
 	}
-
 	if err := structcli.Bind(cmd, opts); err != nil {
 		panic(err)
 	}
 	return cmd
 }
 
+// renderELFProbesText writes a human-readable summary of probes to the
+// command's stdout. Mirrors the SystemFeatures.String() shape so users
+// see a familiar layout.
+func renderELFProbesText(c *cobra.Command, probes *kfeatures.ELFProbes, withFromELF bool) {
+	out := c.OutOrStdout()
+	fmt.Fprintf(out, "ELF: %s\n", probes.Path)
+	if probes.License != "" {
+		fmt.Fprintf(out, "License: %s\n", probes.License)
+	}
+	fmt.Fprintf(out, "BTF: %t\n", probes.HasBTF)
+	fmt.Fprintf(out, "CO-RE relocations: %d\n", probes.CORERelocations)
+	if !probes.MinKernel.IsZero() {
+		fmt.Fprintf(out, "Min kernel: %s\n", probes.MinKernel)
+	}
+	if len(probes.Transport) > 0 {
+		fmt.Fprintf(out, "Transport: %s\n", strings.Join(probes.Transport, ", "))
+	}
+	if len(probes.Programs) > 0 {
+		fmt.Fprintln(out, "Programs:")
+		for _, p := range probes.Programs {
+			fmt.Fprintf(out, "  - %s (%s, %d insns, %d CO-RE relocs)\n", p.Name, p.Type, p.NumInsns, p.CORERelocs)
+		}
+	}
+	if len(probes.Maps) > 0 {
+		fmt.Fprintln(out, "Maps:")
+		for _, m := range probes.Maps {
+			fmt.Fprintf(out, "  - %s (%s, key=%d val=%d max=%d, since %s)\n", m.Name, m.Type, m.KeySize, m.ValueSize, m.MaxEntries, m.Version)
+		}
+	}
+	if len(probes.Helpers) > 0 {
+		fmt.Fprintln(out, "Helpers:")
+		for _, h := range probes.Helpers {
+			fmt.Fprintf(out, "  - %s (since %s)\n", h.Name, h.Version)
+		}
+	}
+	if len(probes.Warnings) > 0 {
+		fmt.Fprintln(out, "Warnings:")
+		for _, w := range probes.Warnings {
+			loc := ""
+			if w.Program != "" {
+				loc = w.Program
+			}
+			if w.File != "" {
+				loc = fmt.Sprintf("%s @ %s:%d", loc, w.File, w.Line)
+			}
+			if loc != "" {
+				fmt.Fprintf(out, "  [%s] %s: %s\n", w.Severity, loc, w.Message)
+			} else {
+				fmt.Fprintf(out, "  [%s] %s\n", w.Severity, w.Message)
+			}
+			if w.Detail != "" {
+				fmt.Fprintf(out, "      %s\n", w.Detail)
+			}
+		}
+	}
+	if withFromELF {
+		fmt.Fprintln(out, "Requirements:")
+		for _, r := range probes.Requirements() {
+			fmt.Fprintf(out, "  - %T %+v\n", r, r)
+		}
+	}
+}
+
+// assembleCheckRequirements turns CheckOptions into the flat slice of
+// kfeatures.Requirement values that gets handed to kfeatures.Check.
+//
+// The caller must have set at least one of opts.Require or opts.FromELF;
+// otherwise an error is returned. When --from-elf is set the function
+// reads the ELF eagerly so any parse error is surfaced before Check.
+func assembleCheckRequirements(opts *CheckOptions) ([]kfeatures.Requirement, error) {
+	if len(opts.Require) == 0 && opts.FromELF == "" {
+		return nil, fmt.Errorf("no features specified: pass --require and/or --from-elf")
+	}
+	out := make([]kfeatures.Requirement, 0, len(opts.Require))
+	for _, f := range opts.Require {
+		out = append(out, f)
+	}
+	if opts.FromELF != "" {
+		group, err := kfeatures.FromELF(opts.FromELF)
+		if err != nil {
+			return nil, fmt.Errorf("from-elf %q: %w", opts.FromELF, err)
+		}
+		for _, r := range group {
+			out = append(out, r)
+		}
+	}
+	return out, nil
+}
+
 // CheckOptions defines flags for the check subcommand.
+//
+// Require and FromELF are alternative requirement sources: at least one
+// must be set, and they may be combined (the union of both is gated). The
+// `flagrequired:"true"` tag on Require is removed in main()'s probe-of-
+// arguments path because --from-elf alone is sufficient.
 type CheckOptions struct {
-	Require featureRequirements `flag:"require" flagshort:"r" flagdescr:"Required features (see available features above)" flagrequired:"true" flagcustom:"true"`
+	Require featureRequirements `flag:"require" flagshort:"r" flagdescr:"Required features (see available features above)" flagcustom:"true"`
+	FromELF string              `flag:"from-elf" flagdescr:"Path to a compiled eBPF ELF object; gates on the FeatureGroup derived from it"`
 	JSON    bool                `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
 }
 
@@ -204,16 +398,12 @@ func checkCmd() *cobra.Command {
 		Short: "Check specific kernel feature requirements",
 		Long:  checkLongDescription(),
 		RunE: func(c *cobra.Command, args []string) error {
-			if len(opts.Require) == 0 {
-				return fmt.Errorf("no features specified")
+			requirements, err := assembleCheckRequirements(opts)
+			if err != nil {
+				return err
 			}
 
-			requirements := make([]kfeatures.Requirement, 0, len(opts.Require))
-			for _, f := range opts.Require {
-				requirements = append(requirements, f)
-			}
-
-			err := kfeatures.Check(requirements...)
+			err = kfeatures.Check(requirements...)
 			if err != nil {
 				// FeatureError is a business outcome, not an invocation
 				// error: --json emits the documented {ok,feature,reason}

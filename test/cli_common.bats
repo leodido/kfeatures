@@ -18,7 +18,21 @@ setup_file() {
 @test "help: probe subcommand" {
     run "$KFEATURES_BIN" probe --help
     assert_success
-    assert_output --partial "Probe all kernel features"
+    assert_output --partial "probe host"
+    assert_output --partial "probe bpf"
+}
+
+@test "help: probe host leaf" {
+    run "$KFEATURES_BIN" probe host --help
+    assert_success
+    assert_output --partial "Probe the running kernel"
+}
+
+@test "help: probe bpf leaf" {
+    run "$KFEATURES_BIN" probe bpf --help
+    assert_success
+    assert_output --partial "Probe a compiled eBPF ELF object"
+    assert_output --partial "--with-core"
 }
 
 @test "help: check subcommand" {
@@ -88,16 +102,23 @@ assert d['flag'] == 'require', d
 # the structcli exitcode package. These assertions lock the contract so
 # downstream agents can rely on it.
 
-@test "errors: missing required flag emits structured JSON with exit code 10" {
-    run "$KFEATURES_BIN" check
-    [[ "$status" -eq 10 ]]
+@test "check --from-elf: missing file emits a clean error" {
+    run "$KFEATURES_BIN" check --from-elf /nonexistent/path.bpf.o
+    [[ "$status" -ne 0 ]]
     echo "$output" | python3 -c "
 import sys, json
 d = json.loads(sys.stdin.read())
-assert d['error'] == 'missing_required_flag', d
-assert d['exit_code'] == 10, d
-assert d['flag'] == 'require', d
-assert d['command'] == 'kfeatures check', d
+assert 'from-elf' in d.get('message', ''), d
+"
+}
+
+@test "check: bare invocation requires --require or --from-elf" {
+    run "$KFEATURES_BIN" check
+    [[ "$status" -ne 0 ]]
+    echo "$output" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+assert 'no features specified' in d.get('message', ''), d
 "
 }
 

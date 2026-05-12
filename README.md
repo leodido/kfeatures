@@ -49,6 +49,8 @@ Neither tells you whether your tool can **actually run**. For example, BPF LSM r
 | **Unprivileged BPF status** | ✗ | ✓ | ✓ |
 | **Mount-state gates** (bpffs/tracefs/custom paths via superblock magic) | ✗ | ✗ | ✓ |
 | **ELF requirement extraction** (parse `.o`, derive requirements) | ✗ | ✗ | ✓ |
+| **ELF static analysis** (superseded-helper warnings, CO-RE memory-access classification) | ✗ | ✗ | ✓ |
+| **Min-kernel-version derivation** (helper / prog-type / map-type → minimum kernel) | ✗ | partial | ✓ |
 | **Composite feature validation** | ✗ | ✗ | ✓ |
 | **Actionable diagnostics** (remediation steps) | ✗ | ✗ | ✓ |
 | Selective probing (minimize overhead) | ✓ ‡ | ✗ § | ✓ |
@@ -172,6 +174,38 @@ if err := kfeatures.Check(reqs); err != nil {
 
 Output is deterministic (deduplicated, stably ordered). Unknown ELF kinds fail closed.
 
+### Full ELF snapshot (`ProbeELF`)
+
+`FromELF` returns only what `Check(...)` consumes. `ProbeELF` is the strict superset: a `*ELFProbes` snapshot with per-program metadata, map declarations, helper-per-program requirements, advisory warnings (e.g. uses of helpers superseded by safer variants), and (with `WithCOREChecks()`) a per-program memory-access classification distinguishing context loads, map-value loads, CO-RE-protected loads, and unprotected kernel-direct loads.
+
+```go
+probes, err := kfeatures.ProbeELFWith("./bpf/probe.o", kfeatures.WithCOREChecks())
+if err != nil {
+    log.Fatal(err)
+}
+for _, w := range probes.Warnings {
+    fmt.Println("warn:", w.Message)
+}
+if err := kfeatures.Check(probes.Requirements()...); err != nil {
+    log.Fatalf("kernel cannot run probe.o: %v", err)
+}
+```
+
+`Requirements()` projects to the same `FeatureGroup` shape `FromELF` returns, with the addition of a `RequireMinKernel(...)` derived from the highest-version helper / program type / map type the object touches. `FromELF` stays the frozen helper for callers that only need the `Check`-compatible projection.
+
+### Minimum kernel version (`RequireMinKernel`)
+
+Gate on the running kernel's version (parsed from `uname -r`):
+
+```go
+err := kfeatures.Check(
+    kfeatures.RequireMinKernel(5, 11),  // bpf_get_current_task_btf
+    kfeatures.RequireProgramHelper(ebpf.Kprobe, asm.FnGetCurrentTaskBtf),
+)
+```
+
+`Probes.Requirements()` adds this automatically based on the kernel-version snapshot under `internal/kernelversions` (regenerated weekly from BCC and Linux UAPI; see [CONTRIBUTING.md](CONTRIBUTING.md#kernel-version-snapshot-internalkernelversions)).
+
 ### Render remediation (`Diagnose`)
 
 `Check` returns the diagnosis for the first failing feature. To inspect any feature against a single probe snapshot, call `Diagnose` directly:
@@ -246,9 +280,15 @@ go install github.com/leodido/kfeatures/cmd/kfeatures@latest
 ```
 
 ```bash
-kfeatures probe                                    # probe all features
+kfeatures probe                                    # probe live kernel (alias for `probe host`)
+kfeatures probe host                               # probe live kernel
+kfeatures probe bpf ./probe.o                      # probe a compiled eBPF object
+kfeatures probe bpf ./probe.o --with-core          # add CO-RE memory-access classification
+kfeatures probe bpf ./probe.o --requirements       # print only the Check-compatible requirement projection
 kfeatures check --require bpf-lsm,btf,cap-bpf      # exit 0 if met, 1 otherwise
-kfeatures probe --json                             # JSON output
+kfeatures check --from-elf ./probe.o               # gate on requirements derived from a compiled object
+kfeatures check --from-elf ./probe.o --require btf # combine ELF-derived and explicit requirements
+kfeatures probe --json                             # JSON output (any subcommand)
 kfeatures config                                   # display kernel config
 ```
 
@@ -327,7 +367,7 @@ $ kfeatures --jsonschema=tree | jq 'map(.title) | map(select(test("^kfeatures( p
 }
 ```
 
-Tools exposed: `probe`, `check`, `config`. The server stays alive across business-outcome errors (a failing `check` does not terminate the session), and invocation errors flow through the same structured envelope as the CLI. Pure stdlib JSON-RPC inside [structcli](https://github.com/leodido/structcli/tree/main/mcp); no extra heavy SDK dependency.
+Tools exposed: `probe-host`, `probe-bpf`, `check`, `config`. The server stays alive across business-outcome errors (a failing `check` does not terminate the session), and invocation errors flow through the same structured envelope as the CLI. Pure stdlib JSON-RPC inside [structcli](https://github.com/leodido/structcli/tree/main/mcp); no extra heavy SDK dependency.
 
 ## What it detects
 
@@ -342,8 +382,8 @@ Tools exposed: `probe`, `check`, `config`. The server stays alive across busines
 | Filesystems | tracefs, debugfs, securityfs, bpffs (gated `tracefs`/`bpffs` checks verify the filesystem is mounted with the expected superblock magic) |
 | Custom mount gates | any path + superblock magic via `RequireMount` |
 | Namespaces | initial user namespace, initial PID namespace |
-| Parameterized workload requirements | program type, map type, helper-per-program-type via requirement items |
-| ELF-derived requirements | program/map types and helper-per-program requirements via `FromELF` |
+| Parameterized workload requirements | program type, map type, helper-per-program-type, minimum kernel version via requirement items |
+| ELF-derived requirements | program/map types and helper-per-program requirements via `FromELF`; full snapshot (warnings, CO-RE memory-access classification, derived `RequireMinKernel`) via `ProbeELF` / `ProbeELFWith(WithCOREChecks())` |
 | Mitigation context | Spectre v1/v2 vulnerability status |
 | Kernel config | `CONFIG_BPF_LSM`, `CONFIG_IMA`, `CONFIG_DEBUG_INFO_BTF`, `CONFIG_FPROBE`, any `CONFIG_*` |
 

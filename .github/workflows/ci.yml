@@ -35,6 +35,9 @@ jobs:
       - name: Test
         run: make test TEST_FLAGS="-v -race -count=1"
 
+      - name: Coverage gate
+        run: make cover-check
+
       - name: Setup Bats
         id: setup-bats
         uses: bats-core/bats-action@5b1e60c2ee94cb1b44a616ea4b1f466f9d6e38ef # v4.0.0
