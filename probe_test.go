@@ -360,3 +360,86 @@ func TestProbeKprobeMulti_WithConfig(t *testing.T) {
 		}
 	})
 }
+
+func TestReadMeasurementCountFrom(t *testing.T) {
+	t.Run("valid count", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "runtime_measurements_count")
+		if err := os.WriteFile(path, []byte("42\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		count, err := readMeasurementCountFrom(path)
+		if err != nil {
+			t.Fatalf("readMeasurementCountFrom() error = %v", err)
+		}
+		if count != 42 {
+			t.Errorf("count = %d, want 42", count)
+		}
+	})
+
+	t.Run("zero count", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "runtime_measurements_count")
+		if err := os.WriteFile(path, []byte("0\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		count, err := readMeasurementCountFrom(path)
+		if err != nil {
+			t.Fatalf("readMeasurementCountFrom() error = %v", err)
+		}
+		if count != 0 {
+			t.Errorf("count = %d, want 0", count)
+		}
+	})
+
+	t.Run("whitespace around number", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "runtime_measurements_count")
+		if err := os.WriteFile(path, []byte("  7  \n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		count, err := readMeasurementCountFrom(path)
+		if err != nil {
+			t.Fatalf("readMeasurementCountFrom() error = %v", err)
+		}
+		if count != 7 {
+			t.Errorf("count = %d, want 7", count)
+		}
+	})
+
+	t.Run("malformed content", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "runtime_measurements_count")
+		if err := os.WriteFile(path, []byte("not-a-number\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		_, err := readMeasurementCountFrom(path)
+		if err == nil {
+			t.Error("expected error for malformed content")
+		}
+	})
+
+	t.Run("empty content", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "runtime_measurements_count")
+		if err := os.WriteFile(path, []byte(""), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		_, err := readMeasurementCountFrom(path)
+		if err == nil {
+			t.Error("expected error for empty content")
+		}
+	})
+
+	t.Run("missing file", func(t *testing.T) {
+		_, err := readMeasurementCountFrom("/nonexistent/path")
+		if err == nil {
+			t.Error("expected error for missing file")
+		}
+	})
+}
