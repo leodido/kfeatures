@@ -630,7 +630,7 @@ func imaProbeTempDir() (string, error) {
 		errs = append(errs, fmt.Errorf("create temp dir under %s: %w", base, err))
 	}
 
-	return "", fmt.Errorf("no writable non-tmpfs temp directory for IMA probe: %v", errs)
+	return "", fmt.Errorf("no writable non-tmpfs temp directory for IMA probe: %w", errors.Join(errs...))
 }
 
 // isNonTmpfs returns true if path exists and is not on a tmpfs filesystem.
