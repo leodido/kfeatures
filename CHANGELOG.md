@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-12
+
 ### Added
 
 - Releases: every artifact (per-platform tarballs and `checksums.txt`) is now signed with [cosign](https://github.com/sigstore/cosign) keyless signing backed by GitHub's OIDC token. Each artifact has a sibling `<artifact>.sigstore.json` bundle containing the signature, certificate (with the workflow identity baked in), and Rekor transparency-log inclusion proof. Verifying a download is a single `cosign verify-blob --bundle ...` invocation; see the new [Verifying releases](README.md#verifying-releases) section in the README for the exact commands. Requires cosign v2.0+ on the verifier side.
@@ -134,7 +136,8 @@ First public release.
 - Release automation with GoReleaser and GitHub generated release notes (`.github/release.yml`)
 - SAST workflow (CodeQL)
 
-[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/leodido/kfeatures/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/leodido/kfeatures/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/leodido/kfeatures/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/leodido/kfeatures/compare/v0.3.0...v0.3.1
