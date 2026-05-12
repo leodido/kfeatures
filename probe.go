@@ -3,6 +3,8 @@
 package kfeatures
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"os"
 	"os/exec"
@@ -486,6 +488,10 @@ func probeIMAExecMeasurementActive() ProbeResult {
 // must invoke cleanup when done. Materializing the binary before the
 // measurement window avoids false positives from FILE_CHECK rules measuring
 // the source read or temp-file write.
+//
+// A unique random trailer is appended to the ELF so that IMA's global
+// hash-table deduplication does not suppress the measurement. The trailer
+// sits past the ELF's segment table and does not affect execution.
 func createFreshTempBinary() (string, func(), error) {
 	noop := func() {}
 
@@ -494,7 +500,14 @@ func createFreshTempBinary() (string, func(), error) {
 		return "", noop, err
 	}
 
-	dir, err := os.MkdirTemp("", "kfeatures-ima-probe-*")
+	// Append random bytes so the digest is unique per invocation.
+	trailer, err := uniqueTrailer()
+	if err != nil {
+		return "", noop, err
+	}
+	src = append(src, trailer...)
+
+	dir, err := imaProbeTempDir()
 	if err != nil {
 		return "", noop, err
 	}
@@ -526,10 +539,10 @@ func ProbeIMAFileCheckMeasurementActive() ProbeResult {
 }
 
 // probeIMAFileCheckMeasurementActive creates a fresh temporary file (new
-// inode), writes content to it, then invalidates any IMA measurement cache
-// by rewriting the file. The baseline count is taken after all setup I/O,
-// and the measurement window contains only an O_RDONLY open — the canonical
-// FILE_CHECK stimulus.
+// inode), rewrites it with unique content to invalidate any IMA measurement
+// cache and avoid global hash-table deduplication. The baseline count is
+// taken after all setup I/O, and the measurement window contains only an
+// O_RDONLY open — the canonical FILE_CHECK stimulus.
 func probeIMAFileCheckMeasurementActive() ProbeResult {
 	path, cleanup, err := createFreshTempFile()
 	if err != nil {
@@ -537,10 +550,14 @@ func probeIMAFileCheckMeasurementActive() ProbeResult {
 	}
 	defer cleanup()
 
-	// Rewrite the file to invalidate any IMA measurement cached from the
-	// initial create. IMA caches per-inode; a write invalidates the cache
-	// so the next open triggers a fresh measurement.
-	if err := os.WriteFile(path, []byte("ima-probe-stimulus\n"), 0644); err != nil {
+	// Rewrite the file with unique content to invalidate any IMA measurement
+	// cached from the initial create and ensure the digest has not been seen
+	// before in IMA's global hash table.
+	trailer, err := uniqueTrailer()
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+	if err := os.WriteFile(path, trailer, 0644); err != nil {
 		return ProbeResult{Supported: false, Error: err}
 	}
 
@@ -570,7 +587,7 @@ func probeIMAFileCheckMeasurementActive() ProbeResult {
 func createFreshTempFile() (string, func(), error) {
 	noop := func() {}
 
-	dir, err := os.MkdirTemp("", "kfeatures-ima-probe-*")
+	dir, err := imaProbeTempDir()
 	if err != nil {
 		return "", noop, err
 	}
@@ -582,6 +599,40 @@ func createFreshTempFile() (string, func(), error) {
 	}
 
 	return path, func() { os.RemoveAll(dir) }, nil
+}
+
+// imaProbeTempDir creates a temp directory on a non-tmpfs filesystem.
+// Common IMA policies exclude tmpfs before FILE_CHECK/BPRM_CHECK rules,
+// which would cause false negatives. Prefers /var/tmp (typically on the
+// root filesystem) over the default temp dir.
+func imaProbeTempDir() (string, error) {
+	for _, base := range []string{"/var/tmp", os.TempDir()} {
+		if isNonTmpfs(base) {
+			return os.MkdirTemp(base, "kfeatures-ima-probe-*")
+		}
+	}
+	// Fall back to default if nothing qualifies (better than failing).
+	return os.MkdirTemp("", "kfeatures-ima-probe-*")
+}
+
+// isNonTmpfs returns true if path exists and is not on a tmpfs filesystem.
+func isNonTmpfs(path string) bool {
+	var st unix.Statfs_t
+	if err := unix.Statfs(path, &st); err != nil {
+		return false
+	}
+	return uint32(st.Type) != unix.TMPFS_MAGIC
+}
+
+// uniqueTrailer returns 16 random bytes hex-encoded (32 bytes) to produce
+// a unique file digest per invocation. This prevents IMA's global hash-table
+// deduplication from suppressing repeated measurements.
+func uniqueTrailer() ([]byte, error) {
+	var buf [16]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return nil, err
+	}
+	return []byte(hex.EncodeToString(buf[:]) + "\n"), nil
 }
 
 // ReadIMARuntimeMeasurementsCount returns the current IMA runtime measurement
