@@ -543,3 +543,66 @@ func TestCreateFreshTempFile(t *testing.T) {
 		}
 	})
 }
+
+func TestUniqueTrailer(t *testing.T) {
+	t.Run("returns non-empty content", func(t *testing.T) {
+		data, err := uniqueTrailer()
+		if err != nil {
+			t.Fatalf("uniqueTrailer() error = %v", err)
+		}
+		if len(data) == 0 {
+			t.Error("expected non-empty trailer")
+		}
+	})
+
+	t.Run("successive calls produce different content", func(t *testing.T) {
+		a, err := uniqueTrailer()
+		if err != nil {
+			t.Fatalf("uniqueTrailer() error = %v", err)
+		}
+		b, err := uniqueTrailer()
+		if err != nil {
+			t.Fatalf("uniqueTrailer() error = %v", err)
+		}
+		if string(a) == string(b) {
+			t.Error("expected different trailers on successive calls")
+		}
+	})
+}
+
+func TestIsNonTmpfs(t *testing.T) {
+	t.Run("root filesystem is non-tmpfs", func(t *testing.T) {
+		if !isNonTmpfs("/") {
+			t.Skip("root is tmpfs on this system")
+		}
+	})
+
+	t.Run("nonexistent path returns false", func(t *testing.T) {
+		if isNonTmpfs("/nonexistent/path/that/should/not/exist") {
+			t.Error("expected false for nonexistent path")
+		}
+	})
+}
+
+func TestImaProbeTempDir(t *testing.T) {
+	t.Run("creates directory on non-tmpfs when available", func(t *testing.T) {
+		dir, err := imaProbeTempDir()
+		if err != nil {
+			t.Fatalf("imaProbeTempDir() error = %v", err)
+		}
+		defer os.RemoveAll(dir)
+
+		info, err := os.Stat(dir)
+		if err != nil {
+			t.Fatalf("stat(%s) error = %v", dir, err)
+		}
+		if !info.IsDir() {
+			t.Errorf("expected directory, got mode = %v", info.Mode())
+		}
+
+		// Verify it's not on tmpfs if /var/tmp is available and non-tmpfs.
+		if isNonTmpfs("/var/tmp") && !isNonTmpfs(dir) {
+			t.Error("expected non-tmpfs directory when /var/tmp is available")
+		}
+	})
+}
