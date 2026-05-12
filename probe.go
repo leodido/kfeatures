@@ -453,15 +453,23 @@ func ProbeIMAExecMeasurementActive() ProbeResult {
 }
 
 // probeIMAExecMeasurementActive creates a fresh temporary executable (new
-// inode), executes it, and checks whether the IMA measurement count increased.
+// inode), then takes a baseline measurement count, executes the binary, and
+// re-reads the count. The measurement window is kept as narrow as possible:
+// only the exec and whatever the kernel does for that exec are counted.
 // A fresh inode avoids false negatives from IMA's per-inode measurement cache.
 func probeIMAExecMeasurementActive() ProbeResult {
+	bin, cleanup, err := createFreshTempBinary()
+	if err != nil {
+		return ProbeResult{Supported: false, Error: err}
+	}
+	defer cleanup()
+
 	before, err := readMeasurementCount()
 	if err != nil {
 		return ProbeResult{Supported: false, Error: err}
 	}
 
-	if err := execFreshTempBinary(); err != nil {
+	if err := execTempBinary(bin); err != nil {
 		return ProbeResult{Supported: false, Error: err}
 	}
 
@@ -473,28 +481,37 @@ func probeIMAExecMeasurementActive() ProbeResult {
 	return ProbeResult{Supported: after > before}
 }
 
-// execFreshTempBinary creates a minimal executable in a temp directory (new
-// inode), runs it, and cleans up. The binary is a copy of /bin/true so it
-// exits 0 immediately. Using a fresh inode avoids IMA's per-inode measurement
-// cache, which would suppress a repeat measurement of /bin/true itself.
-func execFreshTempBinary() error {
+// createFreshTempBinary copies /bin/true into a new temp directory (fresh
+// inode) and returns the path, a cleanup function, and any error. The caller
+// must invoke cleanup when done. Materializing the binary before the
+// measurement window avoids false positives from FILE_CHECK rules measuring
+// the source read or temp-file write.
+func createFreshTempBinary() (string, func(), error) {
+	noop := func() {}
+
 	src, err := os.ReadFile("/bin/true")
 	if err != nil {
-		return err
+		return "", noop, err
 	}
 
 	dir, err := os.MkdirTemp("", "kfeatures-ima-probe-*")
 	if err != nil {
-		return err
+		return "", noop, err
 	}
-	defer os.RemoveAll(dir)
 
 	bin := dir + "/probe"
 	if err := os.WriteFile(bin, src, 0700); err != nil {
-		return err
+		os.RemoveAll(dir)
+		return "", noop, err
 	}
 
-	return (&exec.Cmd{Path: bin}).Run()
+	return bin, func() { os.RemoveAll(dir) }, nil
+}
+
+// execTempBinary executes the binary at the given path and waits for it
+// to exit.
+func execTempBinary(path string) error {
+	return (&exec.Cmd{Path: path}).Run()
 }
 
 // ReadIMARuntimeMeasurementsCount returns the current IMA runtime measurement
