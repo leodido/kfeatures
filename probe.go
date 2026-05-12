@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"slices"
@@ -604,15 +605,32 @@ func createFreshTempFile() (string, func(), error) {
 // imaProbeTempDir creates a temp directory on a non-tmpfs filesystem.
 // Common IMA policies exclude tmpfs before FILE_CHECK/BPRM_CHECK rules,
 // which would cause false negatives. Prefers /var/tmp (typically on the
-// root filesystem) over the default temp dir.
+// root filesystem) over the default temp dir. Returns an error if no
+// writable non-tmpfs candidate is available rather than silently falling
+// back to tmpfs.
 func imaProbeTempDir() (string, error) {
+	var errs []error
+	seen := map[string]bool{}
+
 	for _, base := range []string{"/var/tmp", os.TempDir()} {
-		if isNonTmpfs(base) {
-			return os.MkdirTemp(base, "kfeatures-ima-probe-*")
+		if base == "" || seen[base] {
+			continue
 		}
+		seen[base] = true
+
+		if !isNonTmpfs(base) {
+			errs = append(errs, fmt.Errorf("%s is unavailable or tmpfs", base))
+			continue
+		}
+
+		dir, err := os.MkdirTemp(base, "kfeatures-ima-probe-*")
+		if err == nil {
+			return dir, nil
+		}
+		errs = append(errs, fmt.Errorf("create temp dir under %s: %w", base, err))
 	}
-	// Fall back to default if nothing qualifies (better than failing).
-	return os.MkdirTemp("", "kfeatures-ima-probe-*")
+
+	return "", fmt.Errorf("no writable non-tmpfs temp directory for IMA probe: %v", errs)
 }
 
 // isNonTmpfs returns true if path exists and is not on a tmpfs filesystem.
