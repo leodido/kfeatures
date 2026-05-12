@@ -508,3 +508,38 @@ func TestExecTempBinary(t *testing.T) {
 		}
 	})
 }
+
+func TestCreateFreshTempFile(t *testing.T) {
+	t.Run("creates regular file with content", func(t *testing.T) {
+		path, cleanup, err := createFreshTempFile()
+		if err != nil {
+			t.Fatalf("createFreshTempFile() error = %v", err)
+		}
+		defer cleanup()
+
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("stat(%s) error = %v", path, err)
+		}
+		if !info.Mode().IsRegular() {
+			t.Errorf("expected regular file, got mode = %v", info.Mode())
+		}
+		if info.Size() == 0 {
+			t.Error("expected non-empty file")
+		}
+	})
+
+	t.Run("cleanup removes temp directory", func(t *testing.T) {
+		path, cleanup, err := createFreshTempFile()
+		if err != nil {
+			t.Fatalf("createFreshTempFile() error = %v", err)
+		}
+
+		dir := filepath.Dir(path)
+		cleanup()
+
+		if _, err := os.Stat(dir); !os.IsNotExist(err) {
+			t.Errorf("temp directory still exists after cleanup: %s", dir)
+		}
+	})
+}
