@@ -457,22 +457,54 @@ func TestReadMeasurementCountFrom(t *testing.T) {
 	})
 }
 
-func TestExecFreshTempBinary(t *testing.T) {
-	t.Run("creates and executes successfully", func(t *testing.T) {
-		if err := execFreshTempBinary(); err != nil {
-			t.Fatalf("execFreshTempBinary() error = %v", err)
+func TestCreateFreshTempBinary(t *testing.T) {
+	t.Run("creates executable path", func(t *testing.T) {
+		bin, cleanup, err := createFreshTempBinary()
+		if err != nil {
+			t.Fatalf("createFreshTempBinary() error = %v", err)
+		}
+		defer cleanup()
+
+		info, err := os.Stat(bin)
+		if err != nil {
+			t.Fatalf("stat(%s) error = %v", bin, err)
+		}
+		if info.Mode()&0100 == 0 {
+			t.Errorf("binary not executable: mode = %v", info.Mode())
 		}
 	})
 
-	t.Run("cleans up temp directory", func(t *testing.T) {
-		// List temp dirs before and after to verify cleanup.
-		before, _ := filepath.Glob(os.TempDir() + "/kfeatures-ima-probe-*")
-		if err := execFreshTempBinary(); err != nil {
-			t.Fatalf("execFreshTempBinary() error = %v", err)
+	t.Run("cleanup removes temp directory", func(t *testing.T) {
+		bin, cleanup, err := createFreshTempBinary()
+		if err != nil {
+			t.Fatalf("createFreshTempBinary() error = %v", err)
 		}
-		after, _ := filepath.Glob(os.TempDir() + "/kfeatures-ima-probe-*")
-		if len(after) > len(before) {
-			t.Errorf("temp directory not cleaned up: before=%d, after=%d", len(before), len(after))
+
+		dir := filepath.Dir(bin)
+		cleanup()
+
+		if _, err := os.Stat(dir); !os.IsNotExist(err) {
+			t.Errorf("temp directory still exists after cleanup: %s", dir)
+		}
+	})
+}
+
+func TestExecTempBinary(t *testing.T) {
+	t.Run("executes successfully", func(t *testing.T) {
+		bin, cleanup, err := createFreshTempBinary()
+		if err != nil {
+			t.Fatalf("createFreshTempBinary() error = %v", err)
+		}
+		defer cleanup()
+
+		if err := execTempBinary(bin); err != nil {
+			t.Fatalf("execTempBinary() error = %v", err)
+		}
+	})
+
+	t.Run("nonexistent path returns error", func(t *testing.T) {
+		if err := execTempBinary("/nonexistent/binary"); err == nil {
+			t.Error("expected error for nonexistent binary")
 		}
 	})
 }
