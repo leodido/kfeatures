@@ -441,6 +441,13 @@ func probeIMAAnyMeasurementActive() ProbeResult {
 	return ProbeResult{Supported: false}
 }
 
+// ReadIMARuntimeMeasurementsCount returns the current IMA runtime measurement
+// count from /sys/kernel/security/ima/runtime_measurements_count. No side
+// effects. Useful for diagnostics and for callers building before/after probes.
+func ReadIMARuntimeMeasurementsCount() (int, error) {
+	return readMeasurementCount()
+}
+
 // readMeasurementCount reads the IMA runtime measurement count.
 func readMeasurementCount() (int, error) {
 	data, err := os.ReadFile(imaMeasurementCountPath)
