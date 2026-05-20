@@ -59,7 +59,7 @@ Changes to any of these points require explicit discussion in the PR and a CHANG
 
 ## Kernel-version snapshot (`internal/kernelversions`)
 
-The helper / program-type / map-type minimum-kernel-version tables are generated, not hand-edited. The generator (`internal/kernelversions/cmd/kvgen`) parses BCC's `docs/kernel-versions.md` and Linux UAPI `include/uapi/linux/bpf.h` at pinned commits, cross-validates that every `BPF_FUNC_*` / `BPF_PROG_TYPE_*` / `BPF_MAP_TYPE_*` enum value in UAPI has a corresponding row in the BCC table, and emits `source.json` plus `tables.go`.
+The helper / program-type / map-type minimum-kernel-version tables are generated, not hand-edited. The generator (`internal/kernelversions/cmd/kvgen`) parses BCC's `docs/kernel-versions.md` and Linux UAPI `include/uapi/linux/bpf.h` at pinned commits, cross-validates that every `BPF_FUNC_*` / `BPF_PROG_TYPE_*` / `BPF_MAP_TYPE_*` enum value in UAPI has a corresponding row in the BCC table, and emits `tables.go`.
 
 Workflow:
 
@@ -67,7 +67,7 @@ Workflow:
 - **Manual refresh**: `go generate ./internal/kernelversions/...` from a clean checkout.
 - **Cross-validation failure**: when UAPI ships a new symbol before BCC documents it (or vice versa), the generator returns an error. Decide between waiting for BCC to catch up and adding the symbol to the audited allow-list in `internal/kernelversions/cmd/kvgen/known_gaps.go` with a one-line rationale; never silence the validator wholesale.
 
-Do not commit hand-edited changes to `source.json` or `tables.go`. The auto-refresh PR is the only sanctioned path.
+Do not commit hand-edited changes to `tables.go`. The auto-refresh PR is the only sanctioned path.
 
 ## CLI conventions
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -36,29 +35,6 @@ func TestBuildSource(t *testing.T) {
 	}
 	if src.MapTypes[0].GoConst != "Hash" || src.MapTypes[1].GoConst != "RingBuf" {
 		t.Errorf("map type names = %+v", src.MapTypes)
-	}
-}
-
-func TestWriteSourceJSON(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "source.json")
-	src := &source{BCCCommit: "x", KernelCommit: "y"}
-	if err := writeSourceJSON(path, src); err != nil {
-		t.Fatalf("writeSourceJSON: %v", err)
-	}
-	body, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read: %v", err)
-	}
-	var roundtrip source
-	if err := json.Unmarshal(body, &roundtrip); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
-	if roundtrip.BCCCommit != "x" {
-		t.Errorf("roundtrip BCC commit = %q", roundtrip.BCCCommit)
-	}
-	if !strings.HasSuffix(string(body), "\n") {
-		t.Errorf("expected trailing newline")
 	}
 }
 
