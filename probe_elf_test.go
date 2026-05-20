@@ -106,6 +106,15 @@ func TestRequirementsFromHandBuiltProbes(t *testing.T) {
 	}
 }
 
+func TestRequirementsIncludesDerivedMinKernel(t *testing.T) {
+	p := &ELFProbes{MinKernel: KernelVersion{Major: 5, Minor: 8}}
+	got := p.Requirements()
+	want := FeatureGroup{RequireMinKernel(5, 8)}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Requirements() = %+v, want %+v", got, want)
+	}
+}
+
 func TestRequirementsNilReceiver(t *testing.T) {
 	var p *ELFProbes
 	if got := p.Requirements(); got != nil {
