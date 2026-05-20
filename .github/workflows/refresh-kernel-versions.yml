@@ -109,12 +109,12 @@ jobs:
             Verified with `go vet ./...` and the kernelversions test
             package; full CI runs on this PR.
 
-            Review the diff in `internal/kernelversions/source.json`
-            and `internal/kernelversions/tables.go`. New helpers /
-            program types / map types appearing in upstream UAPI but
-            not yet in BCC's table will surface as cross-validation
-            failures here; in that case, decide between waiting for
-            BCC to catch up and adding the symbol to the audited
-            allow-list in `internal/kernelversions/cmd/kvgen/known_gaps.go`.
+            Review the diff in `internal/kernelversions/tables.go`.
+            New helpers / program types / map types appearing in
+            upstream UAPI but not yet in BCC's table will surface as
+            cross-validation failures here; in that case, decide
+            between waiting for BCC to catch up and adding the symbol
+            to the audited allow-list in
+            `internal/kernelversions/cmd/kvgen/known_gaps.go`.
           labels: |
             dependencies

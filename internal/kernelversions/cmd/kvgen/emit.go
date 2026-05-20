@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"go/format"
 	"os"
@@ -9,37 +8,31 @@ import (
 	"strings"
 )
 
-// source is the canonical input the snapshot is derived from. Stored as
-// JSON in source.json and re-read by tools or tests that want a
-// machine-readable view without depending on the generated Go source.
+// source is the normalized input used to render the generated Go snapshot.
 type source struct {
-	BCCCommit    string      `json:"bcc_commit"`
-	KernelCommit string      `json:"kernel_commit"`
-	Helpers      []helperRow `json:"helpers"`
-	ProgramTypes []enumRow   `json:"program_types"`
-	MapTypes     []enumRow   `json:"map_types"`
-	GeneratedBy  string      `json:"generated_by"`
-	Notes        string      `json:"notes,omitempty"`
+	BCCCommit    string
+	KernelCommit string
+	Helpers      []helperRow
+	ProgramTypes []enumRow
+	MapTypes     []enumRow
 }
 
 type helperRow struct {
-	UAPI    string        `json:"uapi"`    // e.g. "BPF_FUNC_bind"
-	GoConst string        `json:"go"`      // e.g. "FnBind"
-	Version kernelVersion `json:"version"` // major.minor introduced
+	UAPI    string        // e.g. "BPF_FUNC_bind"
+	GoConst string        // e.g. "FnBind"
+	Version kernelVersion // major.minor introduced
 }
 
 type enumRow struct {
-	UAPI    string        `json:"uapi"` // e.g. "BPF_PROG_TYPE_KPROBE"
-	GoConst string        `json:"go"`   // e.g. "Kprobe"
-	Version kernelVersion `json:"version"`
+	UAPI    string // e.g. "BPF_PROG_TYPE_KPROBE"
+	GoConst string // e.g. "Kprobe"
+	Version kernelVersion
 }
 
 func buildSource(bcc *bccTables, bccCommit, kernelCommit string) *source {
 	src := &source{
 		BCCCommit:    bccCommit,
 		KernelCommit: kernelCommit,
-		GeneratedBy:  "internal/kernelversions/cmd/kvgen",
-		Notes:        "Generated. Do not edit by hand. Run `go generate ./internal/kernelversions/...`.",
 	}
 
 	// Helpers: UAPI key is "BPF_FUNC_bind", Go const is camelCase("Fn"+name).
@@ -83,15 +76,6 @@ func buildSource(bcc *bccTables, bccCommit, kernelCommit string) *source {
 	}
 
 	return src
-}
-
-func writeSourceJSON(path string, src *source) error {
-	buf, err := json.MarshalIndent(src, "", "  ")
-	if err != nil {
-		return err
-	}
-	buf = append(buf, '\n')
-	return os.WriteFile(path, buf, 0o644)
 }
 
 func writeTablesGo(path string, src *source) error {

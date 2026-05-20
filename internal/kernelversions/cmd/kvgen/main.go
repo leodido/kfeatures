@@ -5,8 +5,7 @@
 // header at pinned commits, parses the helper / program-type / map-type
 // tables, cross-validates that every BPF_FUNC_* / BPF_PROG_TYPE_* /
 // BPF_MAP_TYPE_* enum value present in the UAPI header has a corresponding
-// row in the BCC table, then emits source.json and tables.go in the parent
-// package directory.
+// row in the BCC table, then emits tables.go in the parent package directory.
 //
 // Usage:
 //
@@ -41,7 +40,7 @@ const (
 func main() {
 	bccCommit := flag.String("bcc-commit", defaultBCCCommit, "iovisor/bcc commit SHA to fetch kernel-versions.md from")
 	kernelCommit := flag.String("kernel-commit", defaultKernelCommit, "torvalds/linux commit SHA to fetch include/uapi/linux/bpf.h from")
-	outputDir := flag.String("output-dir", "internal/kernelversions", "directory to write source.json and tables.go into")
+	outputDir := flag.String("output-dir", "internal/kernelversions", "directory to write tables.go into")
 	flag.Parse()
 
 	if err := run(*bccCommit, *kernelCommit, *outputDir); err != nil {
@@ -79,9 +78,6 @@ func run(bccCommit, kernelCommit, outputDir string) error {
 	}
 
 	src := buildSource(bcc, bccCommit, kernelCommit)
-	if err := writeSourceJSON(filepath.Join(outputDir, "source.json"), src); err != nil {
-		return fmt.Errorf("write source.json: %w", err)
-	}
 	if err := writeTablesGo(filepath.Join(outputDir, "tables.go"), src); err != nil {
 		return fmt.Errorf("write tables.go: %w", err)
 	}
