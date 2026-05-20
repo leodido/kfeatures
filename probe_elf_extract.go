@@ -151,11 +151,14 @@ func probesFromCollectionSpec(spec *ebpf.CollectionSpec, cfg *elfProbeConfig) (*
 				continue
 			}
 			seenInProg[helper] = struct{}{}
-			ver, _ := kernelversions.HelperKernelVersion(helper)
+			ver, err := helperKernelVersion(helper)
+			if err != nil {
+				return nil, fmt.Errorf("program %q: %w", name, err)
+			}
 			entry.Helpers = append(entry.Helpers, ELFHelperRequirement{
 				Name:    helper.String(),
 				Helper:  helper,
-				Version: fromInternal(ver),
+				Version: ver,
 			})
 			if _, ok := helperUnion[helper]; !ok {
 				helperUnion[helper] = struct{}{}
@@ -201,34 +204,43 @@ func probesFromCollectionSpec(spec *ebpf.CollectionSpec, cfg *elfProbeConfig) (*
 			seenMapTypes[m.Type] = struct{}{}
 			mapTypesOrder = append(mapTypesOrder, m.Type)
 		}
-		ver, _ := kernelversions.MapTypeKernelVersion(m.Type)
+		ver, err := mapTypeKernelVersion(m.Type)
+		if err != nil {
+			return nil, fmt.Errorf("map %q: %w", name, err)
+		}
 		out.Maps = append(out.Maps, ELFMap{
 			Name:       name,
 			Type:       m.Type.String(),
 			KeySize:    m.KeySize,
 			ValueSize:  m.ValueSize,
 			MaxEntries: m.MaxEntries,
-			Version:    fromInternal(ver),
+			Version:    ver,
 		})
 	}
 
 	// Helper / program-type / map-type union, sorted for determinism.
 	slices.Sort(progTypesOrder)
 	for _, pt := range progTypesOrder {
-		ver, _ := kernelversions.ProgramTypeKernelVersion(pt)
+		ver, err := programTypeKernelVersion(pt)
+		if err != nil {
+			return nil, err
+		}
 		out.ProgramTypes = append(out.ProgramTypes, ELFProgramTypeRequirement{
 			Name:    pt.String(),
 			Type:    pt,
-			Version: fromInternal(ver),
+			Version: ver,
 		})
 	}
 	slices.Sort(mapTypesOrder)
 	for _, mt := range mapTypesOrder {
-		ver, _ := kernelversions.MapTypeKernelVersion(mt)
+		ver, err := mapTypeKernelVersion(mt)
+		if err != nil {
+			return nil, err
+		}
 		out.MapTypes = append(out.MapTypes, ELFMapTypeRequirement{
 			Name:    mt.String(),
 			Type:    mt,
-			Version: fromInternal(ver),
+			Version: ver,
 		})
 	}
 	slices.SortFunc(helperUnionOrder, func(a, b asm.BuiltinFunc) int {
@@ -241,11 +253,14 @@ func probesFromCollectionSpec(spec *ebpf.CollectionSpec, cfg *elfProbeConfig) (*
 		return 0
 	})
 	for _, h := range helperUnionOrder {
-		ver, _ := kernelversions.HelperKernelVersion(h)
+		ver, err := helperKernelVersion(h)
+		if err != nil {
+			return nil, err
+		}
 		out.Helpers = append(out.Helpers, ELFHelperRequirement{
 			Name:    h.String(),
 			Helper:  h,
-			Version: fromInternal(ver),
+			Version: ver,
 		})
 	}
 	// Sort helpers by version desc so consumers see the gating rows first.
@@ -312,6 +327,31 @@ func transportsFor(maps []ELFMapTypeRequirement) []string {
 	}
 	slices.Sort(out)
 	return out
+}
+
+func helperKernelVersion(helper asm.BuiltinFunc) (KernelVersion, error) {
+	// ProbeELF fails closed on missing snapshot rows so MinKernel and Requirements stay trustworthy.
+	ver, ok := kernelversions.HelperKernelVersion(helper)
+	if !ok {
+		return KernelVersion{}, fmt.Errorf("helper %s has no kernel-version snapshot row", helper)
+	}
+	return fromInternal(ver), nil
+}
+
+func programTypeKernelVersion(pt ebpf.ProgramType) (KernelVersion, error) {
+	ver, ok := kernelversions.ProgramTypeKernelVersion(pt)
+	if !ok {
+		return KernelVersion{}, fmt.Errorf("program type %s has no kernel-version snapshot row", pt)
+	}
+	return fromInternal(ver), nil
+}
+
+func mapTypeKernelVersion(mt ebpf.MapType) (KernelVersion, error) {
+	ver, ok := kernelversions.MapTypeKernelVersion(mt)
+	if !ok {
+		return KernelVersion{}, fmt.Errorf("map type %s has no kernel-version snapshot row", mt)
+	}
+	return fromInternal(ver), nil
 }
 
 // classifyMemoryAccesses is the CO-RE register-state classifier entry
