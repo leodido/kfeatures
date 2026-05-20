@@ -2,10 +2,13 @@ package kfeatures
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/asm"
+
+	"github.com/leodido/kfeatures/internal/kernelversions"
 )
 
 // makeFixtureSpec builds a minimal *ebpf.CollectionSpec without touching
@@ -191,6 +194,57 @@ func TestProbeUnknownMapType(t *testing.T) {
 	}
 	if _, err := probesFromCollectionSpec(spec, &elfProbeConfig{}); err == nil {
 		t.Fatal("unspecified map type: expected error")
+	}
+}
+
+func TestProbeFailsClosedWhenHelperVersionMissing(t *testing.T) {
+	old, ok := kernelversions.HelperVersion[asm.FnTracePrintk]
+	if !ok {
+		t.Fatal("test setup: FnTracePrintk missing from kernel version snapshot")
+	}
+	delete(kernelversions.HelperVersion, asm.FnTracePrintk)
+	t.Cleanup(func() { kernelversions.HelperVersion[asm.FnTracePrintk] = old })
+
+	_, err := probesFromCollectionSpec(makeFixtureSpec(), &elfProbeConfig{})
+	if err == nil {
+		t.Fatal("expected error for missing helper kernel-version row")
+	}
+	if !strings.Contains(err.Error(), "helper FnTracePrintk has no kernel-version snapshot row") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestProbeFailsClosedWhenProgramTypeVersionMissing(t *testing.T) {
+	old, ok := kernelversions.ProgTypeVersion[ebpf.XDP]
+	if !ok {
+		t.Fatal("test setup: XDP missing from kernel version snapshot")
+	}
+	delete(kernelversions.ProgTypeVersion, ebpf.XDP)
+	t.Cleanup(func() { kernelversions.ProgTypeVersion[ebpf.XDP] = old })
+
+	_, err := probesFromCollectionSpec(makeFixtureSpec(), &elfProbeConfig{})
+	if err == nil {
+		t.Fatal("expected error for missing program-type kernel-version row")
+	}
+	if !strings.Contains(err.Error(), "program type XDP has no kernel-version snapshot row") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestProbeFailsClosedWhenMapTypeVersionMissing(t *testing.T) {
+	old, ok := kernelversions.MapTypeVersion[ebpf.RingBuf]
+	if !ok {
+		t.Fatal("test setup: RingBuf missing from kernel version snapshot")
+	}
+	delete(kernelversions.MapTypeVersion, ebpf.RingBuf)
+	t.Cleanup(func() { kernelversions.MapTypeVersion[ebpf.RingBuf] = old })
+
+	_, err := probesFromCollectionSpec(makeFixtureSpec(), &elfProbeConfig{})
+	if err == nil {
+		t.Fatal("expected error for missing map-type kernel-version row")
+	}
+	if !strings.Contains(err.Error(), "map type RingBuf has no kernel-version snapshot row") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
