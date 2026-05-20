@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -83,6 +85,50 @@ func TestWriteTablesGoFormatsAndCompiles(t *testing.T) {
 			t.Errorf("tables.go missing %q\n%s", want, got)
 		}
 	}
+}
+
+func TestWriteTablesGoFailsWhenCiliumNamesUnavailable(t *testing.T) {
+	resetCiliumNameCache(t)
+	ciliumLoadOnce.Do(func() {
+		ciliumLoadErr = errors.New("boom")
+	})
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tables.go")
+	src := &source{
+		BCCCommit:    "abc",
+		KernelCommit: "def",
+		Helpers:      []helperRow{{UAPI: "BPF_FUNC_bind", GoConst: "FnBind", Version: kernelVersion{4, 17}}},
+		ProgramTypes: []enumRow{{UAPI: "BPF_PROG_TYPE_KPROBE", GoConst: "Kprobe", Version: kernelVersion{4, 1}}},
+		MapTypes:     []enumRow{{UAPI: "BPF_MAP_TYPE_HASH", GoConst: "Hash", Version: kernelVersion{3, 19}}},
+	}
+
+	err := writeTablesGo(path, src)
+	if err == nil {
+		t.Fatal("writeTablesGo succeeded, want cilium name lookup error")
+	}
+	if !strings.Contains(err.Error(), "cilium name lookup failed") || !strings.Contains(err.Error(), "boom") {
+		t.Fatalf("writeTablesGo error = %v", err)
+	}
+	if _, statErr := os.Stat(path); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("tables.go should not be emitted on cilium name lookup failure, stat err = %v", statErr)
+	}
+}
+
+func resetCiliumNameCache(t *testing.T) {
+	t.Helper()
+	ciliumLoadOnce = sync.Once{}
+	ciliumHelpers = nil
+	ciliumProgTypes = nil
+	ciliumMapTypes = nil
+	ciliumLoadErr = nil
+	t.Cleanup(func() {
+		ciliumLoadOnce = sync.Once{}
+		ciliumHelpers = nil
+		ciliumProgTypes = nil
+		ciliumMapTypes = nil
+		ciliumLoadErr = nil
+	})
 }
 
 func TestCiliumProgTypeNameAllCases(t *testing.T) {

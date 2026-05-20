@@ -25,11 +25,11 @@ var _ = btf.CORERelocationMetadata
 type regProvenance int
 
 const (
-	provUnknown regProvenance = iota
-	provContext               // R1 at function entry; pointer to ctx
-	provMapValue              // pointer returned by bpf_map_lookup_elem and friends
-	provKernelDirect          // pointer returned by helpers like bpf_get_current_task
-	provCOREProtected         // pointer carried via a CORE-relocated load
+	provUnknown       regProvenance = iota
+	provContext                     // R1 at function entry; pointer to ctx
+	provMapValue                    // pointer returned by bpf_map_lookup_elem and friends
+	provKernelDirect                // pointer returned by helpers like bpf_get_current_task
+	provCOREProtected               // pointer carried via a CORE-relocated load
 )
 
 // memoryAccessKind labels what the classifier inferred about a single
@@ -149,12 +149,26 @@ func classifyProgram(prog *ebpf.ProgramSpec) []memoryAccessKind {
 			continue
 		}
 		// Plain register-to-register move: propagate provenance.
-		if op.Class() == asm.ALU64Class && op.ALUOp() == asm.Mov {
+		if op.Class() == asm.ALU64Class && op.ALUOp() == asm.Mov && op.Source() == asm.RegSource {
 			regs[ins.Dst] = regs[ins.Src]
 			continue
 		}
+		if writesDst(op) {
+			delete(regs, ins.Dst)
+		}
 	}
 	return classes
+}
+
+func writesDst(op asm.OpCode) bool {
+	switch class := op.Class(); {
+	case class == asm.LdClass || class == asm.LdXClass:
+		return true
+	case class.IsALU():
+		return true
+	default:
+		return false
+	}
 }
 
 // classifyAccess maps a source-register provenance to a memory-access
