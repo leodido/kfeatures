@@ -1,10 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/cilium/ebpf"
 	"github.com/leodido/kfeatures"
+	"github.com/leodido/structcli"
 	"github.com/spf13/cobra"
 )
 
@@ -110,4 +116,66 @@ func TestCheckOptionsCompleteRequire(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestRenderELFProbesTextRequirementsModeOnlyPrintsRequirements(t *testing.T) {
+	probes := &kfeatures.ELFProbes{
+		Path: "probe.bpf.o",
+		ProgramTypes: []kfeatures.ELFProgramTypeRequirement{
+			{Name: ebpf.Kprobe.String(), Type: ebpf.Kprobe},
+		},
+	}
+	var out bytes.Buffer
+	cmd := &cobra.Command{}
+	cmd.SetOut(&out)
+
+	renderELFProbesText(cmd, probes, true)
+
+	got := out.String()
+	if !strings.Contains(got, "Requirements:\n") {
+		t.Fatalf("requirements output missing header: %q", got)
+	}
+	if strings.Contains(got, "ELF:") || strings.Contains(got, "BTF:") || strings.Contains(got, "Programs:") {
+		t.Fatalf("requirements mode should not include probe summary, got:\n%s", got)
+	}
+}
+
+func TestProbeBpfRequirementsJSONOnlyPrintsRequirements(t *testing.T) {
+	path := filepath.Join(ciliumModuleDir(t), "testdata", "manyprogs-el.elf")
+	var out bytes.Buffer
+	cmd := probeBpfCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--json", "--requirements", path})
+
+	if _, err := structcli.ExecuteC(cmd); err != nil {
+		t.Fatalf("probe bpf --json --requirements: %v", err)
+	}
+
+	var decoded any
+	if err := json.Unmarshal(out.Bytes(), &decoded); err != nil {
+		t.Fatalf("decode JSON output: %v\n%s", err, out.String())
+	}
+	if _, ok := decoded.(map[string]any); ok {
+		t.Fatalf("requirements JSON should not include an enclosing probe object: %s", out.String())
+	}
+	requirements, ok := decoded.([]any)
+	if !ok {
+		t.Fatalf("requirements JSON = %T, want array: %s", decoded, out.String())
+	}
+	if len(requirements) == 0 {
+		t.Fatal("requirements JSON should contain at least one requirement")
+	}
+}
+
+func ciliumModuleDir(t *testing.T) string {
+	t.Helper()
+	out, err := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", "github.com/cilium/ebpf").Output()
+	if err != nil {
+		t.Fatalf("locate cilium/ebpf module: %v", err)
+	}
+	dir := strings.TrimSpace(string(out))
+	if dir == "" {
+		t.Fatal("go list returned empty cilium/ebpf module dir")
+	}
+	return dir
 }

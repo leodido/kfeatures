@@ -22,18 +22,18 @@ import (
 // evaluation. Use [(*ELFProbes).Requirements] when you want to derive a
 // gating [FeatureGroup] from the same parse.
 type ELFProbes struct {
-	Path            string                       `json:"path"`
-	License         string                       `json:"license"`
-	HasBTF          bool                         `json:"hasBTF"`
-	CORERelocations int                          `json:"coreRelocations"`
-	MinKernel       KernelVersion                `json:"minKernel"`
-	Transport       []string                     `json:"transport,omitempty"`
-	Programs        []ELFProgram                 `json:"programs,omitempty"`
-	Maps            []ELFMap                     `json:"maps,omitempty"`
-	Helpers         []ELFHelperRequirement       `json:"helpers,omitempty"`
-	ProgramTypes    []ELFProgramTypeRequirement  `json:"programTypes,omitempty"`
-	MapTypes        []ELFMapTypeRequirement      `json:"mapTypes,omitempty"`
-	Warnings        []ELFWarning                 `json:"warnings,omitempty"`
+	Path            string                      `json:"path"`
+	License         string                      `json:"license"`
+	HasBTF          bool                        `json:"hasBTF"`
+	CORERelocations int                         `json:"coreRelocations"`
+	MinKernel       KernelVersion               `json:"minKernel"`
+	Transport       []string                    `json:"transport,omitempty"`
+	Programs        []ELFProgram                `json:"programs,omitempty"`
+	Maps            []ELFMap                    `json:"maps,omitempty"`
+	Helpers         []ELFHelperRequirement      `json:"helpers,omitempty"`
+	ProgramTypes    []ELFProgramTypeRequirement `json:"programTypes,omitempty"`
+	MapTypes        []ELFMapTypeRequirement     `json:"mapTypes,omitempty"`
+	Warnings        []ELFWarning                `json:"warnings,omitempty"`
 }
 
 // KernelVersion is a major.minor Linux kernel version.
@@ -110,9 +110,9 @@ type ELFMap struct {
 // ELFHelperRequirement describes a single helper invocation discovered in
 // an ELF object, paired with the kernel version that introduced it.
 type ELFHelperRequirement struct {
-	Name    string           `json:"name"`
-	Helper  asm.BuiltinFunc  `json:"-"`
-	Version KernelVersion    `json:"version"`
+	Name    string          `json:"name"`
+	Helper  asm.BuiltinFunc `json:"-"`
+	Version KernelVersion   `json:"version"`
 }
 
 // ELFProgramTypeRequirement describes a program type referenced by an ELF
@@ -136,12 +136,12 @@ type ELFMapTypeRequirement struct {
 //
 // All counts are zero when [WithCOREChecks] was not requested.
 type MemoryAccessSummary struct {
-	Total          int `json:"total"`
-	COREProtected  int `json:"coreProtected"`
-	ContextSafe    int `json:"contextSafe"`
-	MapValueSafe   int `json:"mapValueSafe"`
-	KernelDirect   int `json:"kernelDirect"`
-	Uncategorized  int `json:"uncategorized"`
+	Total         int `json:"total"`
+	COREProtected int `json:"coreProtected"`
+	ContextSafe   int `json:"contextSafe"`
+	MapValueSafe  int `json:"mapValueSafe"`
+	KernelDirect  int `json:"kernelDirect"`
+	Uncategorized int `json:"uncategorized"`
 }
 
 // ELFWarning is a single diagnostic raised during ELF analysis.
@@ -216,7 +216,7 @@ func (p *ELFProbes) Requirements() FeatureGroup {
 		return 0
 	})
 
-	out := make(FeatureGroup, 0, len(progTypes)+len(mapTypes)+len(pairs))
+	out := make(FeatureGroup, 0, len(progTypes)+len(mapTypes)+len(pairs)+1)
 	for _, pt := range progTypes {
 		out = append(out, RequireProgramType(pt))
 	}
@@ -225,6 +225,9 @@ func (p *ELFProbes) Requirements() FeatureGroup {
 	}
 	for _, pair := range pairs {
 		out = append(out, pair)
+	}
+	if !p.MinKernel.IsZero() {
+		out = append(out, RequireMinKernel(p.MinKernel.Major, p.MinKernel.Minor))
 	}
 	return out
 }

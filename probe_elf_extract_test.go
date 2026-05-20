@@ -116,6 +116,7 @@ func TestRequirementsParityWithFromELF(t *testing.T) {
 	if err != nil {
 		t.Fatalf("requirementsFromCollectionSpec: %v", err)
 	}
+	want = append(want, RequireMinKernel(probes.MinKernel.Major, probes.MinKernel.Minor))
 	got := probes.Requirements()
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Requirements() != FromELF():\n got: %+v\nwant: %+v", got, want)

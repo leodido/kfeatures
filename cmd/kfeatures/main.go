@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -191,9 +192,9 @@ func probeHostCmd() *cobra.Command {
 
 // ProbeBpfOptions defines flags for `probe bpf`.
 type ProbeBpfOptions struct {
-	JSON       bool `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
-	WithCORE   bool `flag:"with-core" flagdescr:"Run the heuristic CO-RE register-state classifier (off by default)"`
-	WithFromELF bool `flag:"requirements" flagdescr:"Also emit the FromELF FeatureGroup the same parse derives"`
+	JSON        bool `flag:"json" flagshort:"j" flagdescr:"Output in JSON format"`
+	WithCORE    bool `flag:"with-core" flagdescr:"Run the heuristic CO-RE register-state classifier (off by default)"`
+	WithFromELF bool `flag:"requirements" flagdescr:"Emit only the Check-compatible FeatureGroup this parse derives"`
 }
 
 // probeBpfCmd is the `probe bpf <file.bpf.o>` leaf. Reads an ELF file
@@ -216,10 +217,7 @@ func probeBpfCmd() *cobra.Command {
 			}
 			if opts.JSON {
 				if opts.WithFromELF {
-					return printJSON(c, map[string]any{
-						"probes":       probes,
-						"requirements": probes.Requirements(),
-					})
+					return printJSON(c, probes.Requirements())
 				}
 				return printJSON(c, probes)
 			}
@@ -238,6 +236,11 @@ func probeBpfCmd() *cobra.Command {
 // see a familiar layout.
 func renderELFProbesText(c *cobra.Command, probes *kfeatures.ELFProbes, withFromELF bool) {
 	out := c.OutOrStdout()
+	if withFromELF {
+		renderELFRequirementsText(out, probes)
+		return
+	}
+
 	fmt.Fprintf(out, "ELF: %s\n", probes.Path)
 	if probes.License != "" {
 		fmt.Fprintf(out, "License: %s\n", probes.License)
@@ -288,11 +291,12 @@ func renderELFProbesText(c *cobra.Command, probes *kfeatures.ELFProbes, withFrom
 			}
 		}
 	}
-	if withFromELF {
-		fmt.Fprintln(out, "Requirements:")
-		for _, r := range probes.Requirements() {
-			fmt.Fprintf(out, "  - %T %+v\n", r, r)
-		}
+}
+
+func renderELFRequirementsText(out io.Writer, probes *kfeatures.ELFProbes) {
+	fmt.Fprintln(out, "Requirements:")
+	for _, r := range probes.Requirements() {
+		fmt.Fprintf(out, "  - %T %+v\n", r, r)
 	}
 }
 
