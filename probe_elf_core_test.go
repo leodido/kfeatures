@@ -104,6 +104,65 @@ func TestClassifyUncategorizedAccess(t *testing.T) {
 	}
 }
 
+func TestClassifyOverwritesClearProvenance(t *testing.T) {
+	cases := []struct {
+		name         string
+		instructions asm.Instructions
+	}{
+		{
+			name: "load-imm clears context",
+			instructions: asm.Instructions{
+				asm.LoadImm(asm.R1, 0xdeadbeef, asm.DWord),
+				asm.LoadMem(asm.R2, asm.R1, 0, asm.DWord),
+				asm.Return(),
+			},
+		},
+		{
+			name: "alu clears context",
+			instructions: asm.Instructions{
+				asm.Add.Imm(asm.R1, 1),
+				asm.LoadMem(asm.R2, asm.R1, 0, asm.DWord),
+				asm.Return(),
+			},
+		},
+		{
+			name: "load-imm clears kernel direct",
+			instructions: asm.Instructions{
+				asm.FnGetCurrentTask.Call(),
+				asm.LoadImm(asm.R0, 0, asm.DWord),
+				asm.LoadMem(asm.R1, asm.R0, 0, asm.DWord),
+				asm.Return(),
+			},
+		},
+		{
+			name: "alu clears kernel direct",
+			instructions: asm.Instructions{
+				asm.FnGetCurrentTask.Call(),
+				asm.Add.Imm(asm.R0, 1),
+				asm.LoadMem(asm.R1, asm.R0, 0, asm.DWord),
+				asm.Return(),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			prog := &ebpf.ProgramSpec{
+				Name:         "overwrite",
+				Type:         ebpf.Kprobe,
+				Instructions: tc.instructions,
+			}
+			got := computeMemoryAccessSummary(prog)
+			if got.Total != 1 || got.Uncategorized != 1 {
+				t.Errorf("summary = %+v, want Total=1 Uncategorized=1", got)
+			}
+			if warnings := computeCOREWarnings("overwrite", prog); len(warnings) != 0 {
+				t.Errorf("overwritten provenance should not warn, got %d", len(warnings))
+			}
+		})
+	}
+}
+
 func TestClassifyMovPropagatesProvenance(t *testing.T) {
 	prog := &ebpf.ProgramSpec{
 		Name: "mov",
