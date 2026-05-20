@@ -228,5 +228,3 @@ func (p *ELFProbes) Requirements() FeatureGroup {
 	}
 	return out
 }
-
-
