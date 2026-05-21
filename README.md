@@ -334,9 +334,10 @@ Codes follow the [structcli/exitcode](https://pkg.go.dev/github.com/leodido/stru
 **`--jsonschema`** dumps a JSON Schema describing a command's flags. Use `=tree` to walk the entire subtree:
 
 ```bash
-$ kfeatures check --jsonschema | jq '.title, .properties | keys'
+$ kfeatures check --jsonschema | jq '.title, (.properties | keys)'
 "kfeatures check"
 [
+  "from-elf",
   "json",
   "require"
 ]
