@@ -178,6 +178,18 @@ Output is deterministic (deduplicated, stably ordered). Unknown ELF kinds fail c
 
 `FromELF` returns only what `Check(...)` consumes. `ProbeELF` is the strict superset: a `*ELFProbes` snapshot with per-program metadata, map declarations, helper-per-program requirements, advisory warnings (e.g. uses of helpers superseded by safer variants), and (with `WithCOREChecks()`) a per-program memory-access classification distinguishing context loads, map-value loads, CO-RE-protected loads, and unprotected kernel-direct loads.
 
+| Signal | API / CLI | Notes |
+|---|---|---|
+| Program, map, and helper requirements | `FromELF`, `ProbeELF.Requirements()`, `check --from-elf` | `FromELF` is the minimal `Check(...)`-compatible projection. |
+| Derived minimum kernel version | `ProbeELF.MinKernel`, `ProbeELF.Requirements()` | Computed from helper, program type, and map type introduction versions. |
+| Object metadata | `ProbeELF`, `probe bpf` | License, BTF presence, CO-RE relocation count. |
+| Per-program / per-map details | `ProbeELF`, `probe bpf --json` | Program type, section/name, instruction count, maps, sizes, max entries. |
+| Transport hints | `ProbeELF.Transport` | Detects RingBuf and PerfEventArray event-streaming paths. |
+| Superseded helper warnings | `ProbeELF.Warnings` | Flags helpers with safer replacements such as `bpf_probe_read*` and `bpf_get_current_task`. |
+| CO-RE memory-access classification | `ProbeELFWith(..., WithCOREChecks())`, `probe bpf --with-core` | Classifies context, map-value, CO-RE-protected, kernel-direct, and uncategorized loads. |
+
+Use `FromELF` when you only need requirements for `Check(...)`; use `ProbeELF` / `probe bpf` when you want a static analysis report. The CO-RE classifier is heuristic and source file/line reporting is best-effort; missing source info does not block requirement extraction.
+
 ```go
 probes, err := kfeatures.ProbeELFWith("./bpf/probe.o", kfeatures.WithCOREChecks())
 if err != nil {
