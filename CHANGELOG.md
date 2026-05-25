@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.0] - 2026-05-12
+## [0.7.0] - 2026-05-25
 
 ### Added
 
@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Superseded-helper warnings: `ELFProbes.Warnings` flags calls to `bpf_probe_read` / `bpf_probe_read_str` (split into `bpf_probe_read_kernel*` / `bpf_probe_read_user*` since 5.5) and `bpf_get_current_task` (subsumed by `bpf_get_current_task_btf` since 5.11). Advisory only; no effect on `Check(...)` verdicts.
 - CLI: `kfeatures probe host` is the new canonical name for the live-kernel probe (`kfeatures probe` continues to work as an alias). `kfeatures probe bpf <path.o>` runs the ELF probe on a compiled object and prints the snapshot; `--with-core` enables CO-RE memory-access classification, `--requirements` prints only the requirement projection, `--json` switches both to JSON. Exposed as MCP tools `probe-host` and `probe-bpf`.
 - CLI: `kfeatures check --from-elf <path.o>` accepts an ELF object as a requirement source (composes with `--require`); both flags are now optional and at least one must be supplied.
+
+## [0.6.0] - 2026-05-12
+
+### Added
+
 - Releases: every artifact (per-platform tarballs and `checksums.txt`) is now signed with [cosign](https://github.com/sigstore/cosign) keyless signing backed by GitHub's OIDC token. Each artifact has a sibling `<artifact>.sigstore.json` bundle containing the signature, certificate (with the workflow identity baked in), and Rekor transparency-log inclusion proof. Verifying a download is a single `cosign verify-blob --bundle ...` invocation; see the new [Verifying releases](README.md#verifying-releases) section in the README for the exact commands. Requires cosign v2.0+ on the verifier side.
 - `NOTICE` file at repo root carrying the `Copyright 2026 Leonardo Di Donato` attribution. Apache 2.0 distinguishes the license text (canonical, verbatim, in `LICENSE`) from project-level attribution (in a `NOTICE` file that downstream consumers must propagate). The previous setup folded the copyright line into `LICENSE` itself; that conflated the two and is one of the deviations that caused licensecheck to mis-classify the file (see corresponding `### Fixed` entry).
 - README License section: "Why Apache 2.0" paragraph. Documents the kernel-uABI posture (no kernel source, no cgo, no GPL deps; `/proc` and `/sys` reads fall under the kernel `COPYING` "normal syscalls" carve-out) and the Apache-2.0-over-MIT rationale (patent grant for security-adjacent probing; same-license adopter base of Cilium, Tetragon, Falco, etc.).
@@ -142,7 +147,8 @@ First public release.
 - Release automation with GoReleaser and GitHub generated release notes (`.github/release.yml`)
 - SAST workflow (CodeQL)
 
-[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/leodido/kfeatures/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/leodido/kfeatures/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/leodido/kfeatures/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/leodido/kfeatures/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/leodido/kfeatures/compare/v0.3.1...v0.4.0
