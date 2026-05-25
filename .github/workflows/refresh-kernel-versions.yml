@@ -22,6 +22,9 @@ on:
         default: ""
 
 permissions:
+  # Needed only to dispatch CI on the bot-created PR branch. Pull-request
+  # events caused by GITHUB_TOKEN do not trigger workflows automatically.
+  actions: write
   contents: write
   pull-requests: write
 
@@ -118,3 +121,10 @@ jobs:
             `internal/kernelversions/cmd/kvgen/known_gaps.go`.
           labels: |
             dependencies
+
+      - name: Run CI on refresh PR branch
+        if: steps.drift.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run ci.yml --ref chore/refresh-kernel-versions
