@@ -18,9 +18,9 @@ jobs:
       matrix:
         go-version: ["1.24"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: ${{ matrix.go-version }}
 
@@ -43,7 +43,7 @@ jobs:
         id: setup-bats
         uses: bats-core/bats-action@5b1e60c2ee94cb1b44a616ea4b1f466f9d6e38ef # v4.0.0
         with:
-          bats-version: latest
+          bats-version: v1.13.0
           support-install: true
           assert-install: true
           detik-install: false
@@ -59,9 +59,9 @@ jobs:
     name: CLI (macOS)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: "1.24"
 
@@ -72,7 +72,7 @@ jobs:
         id: setup-bats
         uses: bats-core/bats-action@5b1e60c2ee94cb1b44a616ea4b1f466f9d6e38ef # v4.0.0
         with:
-          bats-version: latest
+          bats-version: v1.13.0
           support-install: true
           assert-install: true
           detik-install: false
@@ -88,9 +88,9 @@ jobs:
     name: Integration (Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: "1.24"
 
@@ -109,7 +109,7 @@ jobs:
         id: setup-bats
         uses: bats-core/bats-action@5b1e60c2ee94cb1b44a616ea4b1f466f9d6e38ef # v4.0.0
         with:
-          bats-version: latest
+          bats-version: v1.13.0
           support-install: true
           assert-install: true
           detik-install: false
@@ -127,12 +127,12 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: "1.24"
 
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6
         with:
-          version: latest
+          version: v2.12.2
