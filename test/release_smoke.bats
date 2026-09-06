@@ -12,6 +12,9 @@ SH
     cat > "$FIXTURE/bin/gh" <<'SH'
 #!/usr/bin/env bash
 [[ $1 == release && $3 == "$MOCK_TAG" && $4 == --repo && $5 == owner/repo ]] || exit 91
+if [[ ${MOCK_REQUIRE_TOKEN:-} == true ]]; then
+    [[ ${GH_TOKEN:-} == smoke-test-token ]] || exit 95
+fi
 case $2 in
     view) printf '%s\n' "${MOCK_PUBLISHED_TAG-$MOCK_TAG}" ;;
     download)
@@ -44,6 +47,17 @@ smoke() {
 }
 
 @test "release smoke: exact version accepts commit/date and separate kernel line" {
+    smoke
+    [ "$status" -eq 0 ]
+    [[ $output == *'PASS: v1.2.3 / linux_amd64'* ]]
+}
+
+@test "release smoke: download keeps authentication but binary has no GH_TOKEN" {
+    export GH_TOKEN=smoke-test-token MOCK_REQUIRE_TOKEN=true
+    cat >> "$FIXTURE/archive/kfeatures" <<'SH'
+[[ ${GH_TOKEN+x} != x ]] || exit 96
+SH
+    tar -czf "$FIXTURE/asset.tar.gz" -C "$FIXTURE/archive" .
     smoke
     [ "$status" -eq 0 ]
     [[ $output == *'PASS: v1.2.3 / linux_amd64'* ]]
