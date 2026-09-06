@@ -1,0 +1,52 @@
+name: Release artifact smoke
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Exact published release tag (vMAJOR.MINOR.PATCH)
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Exact existing release tag (for example v0.7.0; never latest)
+        required: true
+        type: string
+  # Exercise the real download/startup path when maintaining these checks.
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/release-smoke.yml
+      - .github/workflows/release.yaml
+      - scripts/smoke-release.sh
+      - test/release_smoke.bats
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Published Linux ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - name: Download and smoke-test exact release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          # A fixed existing release is the PR fixture, never the moving latest.
+          RELEASE_TAG: ${{ github.event_name == 'pull_request' && 'v0.7.0' || inputs.release_tag }}
+          RELEASE_ARCH: ${{ matrix.arch }}
+        run: bash scripts/smoke-release.sh "$RELEASE_TAG" "$RELEASE_ARCH" "$GH_REPO"

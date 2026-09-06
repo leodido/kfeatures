@@ -153,3 +153,31 @@ is also run by the integration job.
 - One logical change per commit; rebase, do not merge.
 - Update `CHANGELOG.md` under `[Unreleased]` for any user-visible change.
 - New public symbols require Go doc comments and at least one test.
+
+## Published release smoke tests
+
+After GoReleaser succeeds, `releasing` explicitly calls `release-smoke.yml`
+with the triggering tag. This avoids relying on a `release: published` event
+from `GITHUB_TOKEN`, which does not start another workflow. A smoke failure
+marks the release workflow failed; it does not roll back the published release.
+
+The read-only smoke jobs download the exact release's
+`kfeatures_VERSION_linux_amd64.tar.gz` and `kfeatures_VERSION_linux_arm64.tar.gz`
+on native `ubuntu-24.04` and `ubuntu-24.04-arm` runners. Each extracts into a
+fresh temporary directory, requires an executable root-level `kfeatures`, runs
+`kfeatures version` with a timeout, and compares the first line's tool version
+with the tag minus its leading `v`. Commit/date suffixes and the separate kernel
+version line are not compared. No privileged probes or signature-policy changes
+are involved.
+
+Use the **Release artifact smoke** workflow's manual dispatch with an explicit
+existing tag (for example `v0.7.0`) to retest a release without publishing one.
+The workflow must be on the default branch before manual dispatch is available.
+PRs changing the smoke script/workflows/tests run the same native matrix against
+fixed release `v0.7.0`. Script failure-path fixtures run with `bats test/`.
+
+To reproduce on a matching Linux host with `gh`, `tar`, and GNU `timeout`:
+
+```bash
+bash scripts/smoke-release.sh v0.7.0 amd64 leodido/kfeatures
+```

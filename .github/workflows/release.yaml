@@ -40,3 +40,12 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  smoke:
+    # Explicit dependency: GITHUB_TOKEN-created releases do not trigger release workflows.
+    needs: goreleaser
+    permissions:
+      contents: read
+    uses: ./.github/workflows/release-smoke.yml
+    with:
+      release_tag: ${{ github.ref_name }}
