@@ -45,7 +45,8 @@ binary="$workdir/extracted/kfeatures"
 
 step='version-startup'
 # version performs only the unprivileged baseline probe. Bound hangs as well as crashes.
-output=$(timeout 30s "$binary" version)
+# Authentication is needed for gh above, not for the downloaded executable.
+output=$(env -u GH_TOKEN timeout 30s "$binary" version)
 printf '%s\n' "$output"
 
 step='version-metadata'
