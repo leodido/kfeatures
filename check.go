@@ -201,20 +201,21 @@ func (sf *SystemFeatures) Diagnose(f Feature) string {
 	case FeatureTracepoint:
 		return "tracepoint program type not supported; ensure perf events are enabled and use a kernel with tracepoint BPF support"
 	case FeatureIMA:
-		if sf.IMAEnabled.Error != nil {
-			return "unable to read active LSM list (/sys/kernel/security/lsm); ensure securityfs is mounted and readable to verify IMA state"
-		}
-		if kc != nil && !kc.IMA.IsEnabled() {
+		if !sf.IMAEnabled.Supported && kc != nil && !kc.IMA.IsEnabled() {
 			return "CONFIG_IMA not set; rebuild kernel with CONFIG_IMA=y"
 		}
+		if sf.IMAEnabled.Error != nil {
+			return fmt.Sprintf("IMA runtime evidence unavailable or inaccessible: %v; verify securityfs visibility and permissions, and check kernel initialization logs", sf.IMAEnabled.Error)
+		}
+		return "IMA runtime evidence unavailable; verify securityfs visibility and permissions, CONFIG_IMA, and kernel initialization logs"
 	case FeatureIMAAnyMeasurementActive:
-		if sf.IMAAnyMeasurementActive.Error != nil {
-			return fmt.Sprintf("unable to read IMA measurement count from %s: %v", imaMeasurementCountPath, sf.IMAAnyMeasurementActive.Error)
-		}
 		if !sf.IMAEnabled.Supported {
-			return "IMA is not in the active LSM list; enable IMA first (lsm=...,ima in kernel boot params)"
+			return sf.Diagnose(FeatureIMA)
 		}
-		return "no IMA measurement has occurred; write a measurement rule (e.g., 'measure func=BPRM_CHECK') to /sys/kernel/security/ima/policy"
+		if sf.IMAAnyMeasurementActive.Error != nil {
+			return fmt.Sprintf("unable to read or parse IMA measurement count: %v; verify the runtime_measurements_count interface and its permissions", sf.IMAAnyMeasurementActive.Error)
+		}
+		return "IMA is available but no measurement activity was observed; inspect the effective policy and workload coverage (policy may come from boot parameters, built-in/architecture policy, or securityfs policy loading)"
 	case FeatureCapBPF:
 		return "missing CAP_BPF; run with CAP_BPF or as root"
 	case FeatureCapSysAdmin:

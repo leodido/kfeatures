@@ -87,6 +87,7 @@ func TestProbeWith_WithLSMPath(t *testing.T) {
 	sf, err := ProbeWith(
 		WithSecuritySubsystems(),
 		WithLSMPath(path),
+		func(c *probeConfig) { c.imaPaths = []string{filepath.Join(dir, "ima")} },
 	)
 	if err != nil {
 		t.Fatalf("ProbeWith() error = %v", err)
@@ -113,6 +114,7 @@ func TestProbeWith_LSMNotInList(t *testing.T) {
 	sf, err := ProbeWith(
 		WithSecuritySubsystems(),
 		WithLSMPath(path),
+		func(c *probeConfig) { c.imaPaths = []string{filepath.Join(dir, "ima")} },
 	)
 	if err != nil {
 		t.Fatalf("ProbeWith() error = %v", err)
@@ -122,7 +124,7 @@ func TestProbeWith_LSMNotInList(t *testing.T) {
 		t.Error("BPFLSMEnabled should be false when 'bpf' is not in LSM list")
 	}
 	if sf.IMAEnabled.Supported {
-		t.Error("IMAEnabled should be false when 'ima' is not in LSM list")
+		t.Error("IMAEnabled should be false without LSM or directory evidence")
 	}
 }
 
@@ -228,7 +230,7 @@ func TestSystemFeatures_String(t *testing.T) {
 		Fentry:         ProbeResult{Supported: true},
 		BTF:            ProbeResult{Supported: true},
 		BPFLSMEnabled:  ProbeResult{Supported: true},
-		IMAEnabled:     ProbeResult{Supported: false},
+		IMAEnabled:     ProbeResult{Supported: true},
 		IMADirectory:   ProbeResult{Supported: true},
 		HasCapBPF:      ProbeResult{Supported: true},
 		HasCapSysAdmin: ProbeResult{Supported: true},
@@ -268,7 +270,7 @@ func TestSystemFeatures_String(t *testing.T) {
 	if !strings.Contains(output, "BTF: yes") {
 		t.Error("String() should contain BTF status")
 	}
-	if !strings.Contains(output, "IMA enabled: no") {
+	if !strings.Contains(output, "IMA enabled: yes") {
 		t.Error("String() should contain IMA status")
 	}
 	if !strings.Contains(output, "lockdown, bpf") {
@@ -605,4 +607,188 @@ func TestImaProbeTempDir(t *testing.T) {
 			t.Error("expected non-tmpfs directory when /var/tmp is available")
 		}
 	})
+}
+
+func TestProbeWithLegacyIMA(t *testing.T) {
+	root := t.TempDir()
+	ima := filepath.Join(root, "integrity", "ima")
+	if err := os.MkdirAll(ima, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ima, "runtime_measurements_count"), []byte("42\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	lsm := filepath.Join(root, "lsm")
+	if err := os.WriteFile(lsm, []byte("capability,integrity,bpf\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	sf, err := ProbeWith(WithSecuritySubsystems(), WithLSMPath(lsm), func(c *probeConfig) { c.imaPaths = []string{filepath.Join(root, "ima"), ima} })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sf.IMAEnabled.Supported || !sf.IMAAnyMeasurementActive.Supported {
+		t.Fatalf("legacy IMA: availability=%+v measurement=%+v", sf.IMAEnabled, sf.IMAAnyMeasurementActive)
+	}
+	if !sf.BPFLSMEnabled.Supported {
+		t.Fatal("BPF LSM lost")
+	}
+}
+
+func TestIMAVisibility(t *testing.T) {
+	for _, tc := range []struct {
+		name, lsm, directory, count                              string
+		available, directoryError, measurement, measurementError bool
+	}{
+		{"modern", "bpf,ima", "missing", "", true, false, false, true},
+		{"legacy", "integrity,bpf", "directory", "7", true, false, true, false},
+		{"integrity alone", "integrity", "missing", "", false, false, false, true},
+		{"LSM missing", "", "directory", "7", true, false, true, false},
+		{"LSM unreadable", "unreadable", "directory", "7", true, false, true, false},
+		{"no activity", "integrity", "directory", "1", true, false, false, false},
+		{"bad count", "integrity", "directory", "bad", true, false, false, true},
+		{"missing count", "integrity", "directory", "", true, false, false, true},
+		{"not a directory", "integrity", "file", "", false, true, false, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			lsm := filepath.Join(root, "lsm")
+			ima := filepath.Join(root, "ima")
+			if tc.lsm == "unreadable" {
+				if err := os.Mkdir(lsm, 0755); err != nil {
+					t.Fatal(err)
+				}
+			} else if tc.lsm != "" {
+				if err := os.WriteFile(lsm, []byte(tc.lsm), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if tc.directory == "directory" {
+				if err := os.Mkdir(ima, 0755); err != nil {
+					t.Fatal(err)
+				}
+			} else if tc.directory == "file" {
+				if err := os.WriteFile(ima, nil, 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if tc.count != "" {
+				if err := os.WriteFile(filepath.Join(ima, "runtime_measurements_count"), []byte(tc.count), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			sf, err := ProbeWith(WithSecuritySubsystems(), WithLSMPath(lsm), func(c *probeConfig) { c.imaPaths = []string{ima} })
+			if err != nil {
+				t.Fatal(err)
+			}
+			if sf.IMAEnabled.Supported != tc.available || (sf.IMAEnabled.Error == nil) != tc.available {
+				t.Fatalf("availability=%+v", sf.IMAEnabled)
+			}
+			if (sf.IMADirectory.Error != nil) != tc.directoryError {
+				t.Fatalf("directory=%+v", sf.IMADirectory)
+			}
+			if sf.IMAAnyMeasurementActive.Supported != tc.measurement || (sf.IMAAnyMeasurementActive.Error != nil) != tc.measurementError {
+				t.Fatalf("measurement=%+v", sf.IMAAnyMeasurementActive)
+			}
+			if tc.count == "bad" && !strings.Contains(sf.IMAAnyMeasurementActive.Error.Error(), "invalid syntax") {
+				t.Fatalf("parse error lost: %v", sf.IMAAnyMeasurementActive.Error)
+			}
+			if tc.directory == "directory" && tc.count == "" && !errors.Is(sf.IMAAnyMeasurementActive.Error, os.ErrNotExist) {
+				t.Fatalf("missing count error lost: %v", sf.IMAAnyMeasurementActive.Error)
+			}
+			if tc.lsm == "" || tc.lsm == "unreadable" {
+				if sf.ActiveLSMs != nil {
+					t.Fatalf("ActiveLSMs=%v", sf.ActiveLSMs)
+				}
+			} else if strings.Join(sf.ActiveLSMs, ",") != tc.lsm {
+				t.Fatalf("ActiveLSMs=%v", sf.ActiveLSMs)
+			}
+			if sf.BPFLSMEnabled.Supported != strings.Contains(tc.lsm, "bpf") {
+				t.Fatalf("BPF=%+v", sf.BPFLSMEnabled)
+			}
+			if (sf.BPFLSMEnabled.Error != nil) != (tc.lsm == "" || tc.lsm == "unreadable") {
+				t.Fatalf("BPF error=%v", sf.BPFLSMEnabled.Error)
+			}
+		})
+	}
+}
+
+func TestIMADirectoryEvidence(t *testing.T) {
+	root := t.TempDir()
+	target := filepath.Join(root, "integrity", "ima")
+	if err := os.MkdirAll(target, 0755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(root, "ima")
+	if err := os.Symlink("integrity/ima", link); err != nil {
+		t.Fatal(err)
+	}
+	result, path := probeIMADirectories([]string{link, target}, os.Stat)
+	if !result.Supported || path != link {
+		t.Fatalf("compatibility link: %+v %s", result, path)
+	}
+	denied := &os.PathError{Op: "stat", Path: link, Err: os.ErrPermission}
+	for _, positive := range []bool{false, true} {
+		stat := func(path string) (os.FileInfo, error) {
+			if path == link {
+				return nil, denied
+			}
+			if positive {
+				return os.Stat(target)
+			}
+			return nil, &os.PathError{Op: "stat", Path: path, Err: os.ErrNotExist}
+		}
+		directory, _ := probeIMADirectories([]string{link, target}, stat)
+		if directory.Supported != positive || errors.Is(directory.Error, os.ErrPermission) == positive {
+			t.Fatalf("directory=%+v", directory)
+		}
+		availability := imaAvailability([]string{"integrity"}, os.ErrPermission, directory)
+		if availability.Supported != positive || errors.Is(availability.Error, os.ErrPermission) == positive {
+			t.Fatalf("availability=%+v", availability)
+		}
+		modern := imaAvailability([]string{"ima"}, nil, directory)
+		if !modern.Supported || modern.Error != nil {
+			t.Fatalf("modern=%+v", modern)
+		}
+	}
+}
+
+func TestIMAAnyMeasurementReadSequence(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		counts    []int
+		failAt    int
+		supported bool
+	}{
+		{"existing measurements", []int{42}, -1, true},
+		{"unchanged boot aggregate", []int{1, 1}, -1, false},
+		{"empty log", []int{0, 0}, -1, false},
+		{"stimulus increase", []int{1, 2}, -1, true},
+		{"initial read failure", nil, 0, false},
+		{"second read failure", []int{1}, 1, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := 0
+			result := probeIMAAnyMeasurementActiveWith(func() (int, error) {
+				i := calls
+				calls++
+				if i == tc.failAt {
+					return 0, os.ErrPermission
+				}
+				if i >= len(tc.counts) {
+					t.Fatal("unexpected count read")
+				}
+				return tc.counts[i], nil
+			})
+			if result.Supported != tc.supported || errors.Is(result.Error, os.ErrPermission) != (tc.failAt >= 0) {
+				t.Fatalf("result=%+v", result)
+			}
+			want := len(tc.counts)
+			if tc.failAt >= 0 {
+				want++
+			}
+			if calls != want {
+				t.Fatalf("reads=%d want %d", calls, want)
+			}
+		})
+	}
 }

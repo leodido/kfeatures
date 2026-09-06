@@ -162,6 +162,24 @@ To skip a function from the gate's denominator, put a single line `// coverage:i
 
 The checker source lives in `internal/tools/covercheck/main.go`. Do not bypass it by editing `COVER_THRESHOLD` per-file; raise it through tests instead.
 
+## IMA runtime evidence contract
+
+- `IMAEnabled` accepts either an `ima` LSM entry or a visible IMA-specific
+  securityfs directory (`ima` compatibility path or `integrity/ima`). Follow
+  symlinks and verify directory type. Neither `integrity` alone nor
+  `CONFIG_IMA=y` establishes runtime availability; do not use version cutoffs.
+- Positive evidence wins over failure of another source. Preserve raw BPF LSM
+  errors and `ActiveLSMs` independently. For `IMADirectory`, missing paths are
+  clean negatives; access/type failures remain errors unless another IMA path
+  is visible. Without any positive runtime evidence, `IMAEnabled` carries an
+  unavailable-evidence error, including underlying access/LSM failures.
+- Probe measurement activity when either availability signal succeeds, using
+  the visible directory's count interface. A skipped probe carries an error.
+  Retain count read/parse errors and the existing count/exec semantics; do not
+  infer appraisal, file-specific cached hashes, or BPF helper usability.
+- Keep fixtures independent of host IMA state using private path overrides.
+  Exercise legacy and modern evidence, precedence, and visibility failures.
+
 ## Kernel-version snapshot (`internal/kernelversions`)
 
 The tables under `internal/kernelversions` (helpers, program types, map types → minimum kernel version) are **generated**. Do not hand-edit `source.json` or `tables.go`.
