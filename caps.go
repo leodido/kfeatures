@@ -129,7 +129,7 @@ func probeFilesystemPresent(paths ...string) ProbeResult {
 	return ProbeResult{Supported: false}
 }
 
-// statfs is the package-level Statfs implementation used by checkMount.
+// statfs is the package-level Statfs implementation used by mount and IMA probes.
 // Tests substitute a fake to exercise the mount-state code paths without
 // requiring privileged operations.
 var statfs = unix.Statfs

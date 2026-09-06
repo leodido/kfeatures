@@ -61,13 +61,15 @@ type SystemFeatures struct {
 	ActiveLSMs    []string
 
 	// IMAEnabled reports runtime evidence of IMA availability: an "ima" LSM
-	// entry or an IMA-specific securityfs directory, including legacy kernels.
+	// entry or an IMA-specific directory verified to be on securityfs, including
+	// legacy kernels.
 	// It does not imply active measurement policy, appraisal enforcement, cached
 	// hashes for a particular file, or success of BPF IMA helper calls.
 	IMAEnabled ProbeResult
 	// IMADirectory indicates that /sys/kernel/security/ima (the compatibility
-	// path) or /sys/kernel/security/integrity/ima is a visible directory.
-	// Missing paths are unsupported; access errors are retained.
+	// path) or /sys/kernel/security/integrity/ima is a visible directory on
+	// securityfs (verified by filesystem type, following symlinks).
+	// Missing paths are unsupported; access and filesystem lookup errors are retained.
 	IMADirectory ProbeResult
 	// IMAAnyMeasurementActive indicates at least one IMA measurement rule
 	// has fired. It does not identify which func= rule caused the measurement.
