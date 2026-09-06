@@ -411,7 +411,9 @@ kfeatures probe host --json
 `IMAEnabled` / `--require ima` detects runtime availability through either an
 `ima` entry in the active LSM list or a visible IMA securityfs directory:
 `/sys/kernel/security/ima` (the compatibility path) or
-`/sys/kernel/security/integrity/ima`. This supports legacy kernels without a
+`/sys/kernel/security/integrity/ima`. The resolved directory must reside on
+securityfs; ordinary directories or container mount placeholders do not count.
+This supports legacy kernels without a
 separate IMA LSM entry. An unreadable LSM list does not negate visible IMA
 evidence. Without positive evidence, diagnostics report unavailable runtime
 visibility and preserve access errors rather than declaring IMA disabled.

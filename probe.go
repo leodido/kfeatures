@@ -395,8 +395,8 @@ const imaDirectoryPath = "/sys/kernel/security/ima"
 const imaIntegrityDirectoryPath = "/sys/kernel/security/integrity/ima"
 
 // probeIMADirectories follows the compatibility symlink and also checks its
-// underlying path. A visible directory wins over an error on the other path.
-// Missing paths are clean directory negatives; access and type errors survive.
+// underlying path. A directory on securityfs wins over an error on the other path.
+// Missing paths are clean directory negatives; access, type and statfs errors survive.
 // The returned path selects the measurement interface, even when none is visible.
 func probeIMADirectories(paths []string, stat func(string) (os.FileInfo, error)) (ProbeResult, string) {
 	var errs []error
@@ -404,7 +404,17 @@ func probeIMADirectories(paths []string, stat func(string) (os.FileInfo, error))
 		info, err := stat(path)
 		if err == nil {
 			if info.IsDir() {
-				return ProbeResult{Supported: true}, path
+				// Statfs follows symlinks just like os.Stat. An ordinary mount
+				// placeholder is not evidence of kernel IMA initialization.
+				var fs unix.Statfs_t
+				if err := statfs(path, &fs); err != nil {
+					errs = append(errs, fmt.Errorf("statfs %s: %w", path, err))
+				} else if uint32(fs.Type) == unix.SECURITYFS_MAGIC {
+					return ProbeResult{Supported: true}, path
+				} else {
+					errs = append(errs, fmt.Errorf("IMA directory %s is not on securityfs (got filesystem 0x%x)", path, uint32(fs.Type)))
+				}
+				continue
 			}
 			err = fmt.Errorf("IMA securityfs path %s is not a directory", path)
 		}

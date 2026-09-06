@@ -11,6 +11,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/features"
+	"golang.org/x/sys/unix"
 )
 
 func TestReadActiveLSMsFrom(t *testing.T) {
@@ -610,6 +611,7 @@ func TestImaProbeTempDir(t *testing.T) {
 }
 
 func TestProbeWithLegacyIMA(t *testing.T) {
+	withIMASecurityFS(t)
 	root := t.TempDir()
 	ima := filepath.Join(root, "integrity", "ima")
 	if err := os.MkdirAll(ima, 0755); err != nil {
@@ -635,6 +637,7 @@ func TestProbeWithLegacyIMA(t *testing.T) {
 }
 
 func TestIMAVisibility(t *testing.T) {
+	withIMASecurityFS(t)
 	for _, tc := range []struct {
 		name, lsm, directory, count                              string
 		available, directoryError, measurement, measurementError bool
@@ -713,6 +716,7 @@ func TestIMAVisibility(t *testing.T) {
 }
 
 func TestIMADirectoryEvidence(t *testing.T) {
+	withIMASecurityFS(t)
 	root := t.TempDir()
 	target := filepath.Join(root, "integrity", "ima")
 	if err := os.MkdirAll(target, 0755); err != nil {
@@ -788,6 +792,103 @@ func TestIMAAnyMeasurementReadSequence(t *testing.T) {
 			}
 			if calls != want {
 				t.Fatalf("reads=%d want %d", calls, want)
+			}
+		})
+	}
+}
+
+func TestIMARejectsOrdinaryDirectory(t *testing.T) {
+	root := t.TempDir()
+	ima := filepath.Join(root, "ima")
+	if err := os.Mkdir(ima, 0755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(root, "ima-link")
+	if err := os.Symlink("ima", link); err != nil {
+		t.Fatal(err)
+	}
+	for _, candidate := range []string{ima, link} {
+		sf, err := ProbeWith(WithSecuritySubsystems(), WithLSMPath(filepath.Join(root, "lsm")), func(c *probeConfig) { c.imaPaths = []string{candidate} })
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sf.IMAEnabled.Supported || sf.IMADirectory.Supported {
+			t.Fatalf("ordinary directory accepted: IMA=%+v directory=%+v", sf.IMAEnabled, sf.IMADirectory)
+		}
+		if sf.IMAEnabled.Error == nil || sf.IMAAnyMeasurementActive.Error == nil {
+			t.Fatal("unavailable evidence and skipped measurement must retain errors")
+		}
+	}
+}
+
+// withIMASecurityFS supplies kernel filesystem identity for ordinary fixture
+// directories. Tests that reject placeholders use real statfs instead.
+func withIMASecurityFS(t *testing.T) {
+	t.Helper()
+	withFakeStatfs(t, func(_ string, st *unix.Statfs_t) error {
+		setStatfsType(st, unix.SECURITYFS_MAGIC)
+		return nil
+	})
+}
+
+func TestIMAFilesystemEvidence(t *testing.T) {
+	for _, tc := range []struct {
+		name                    string
+		firstMagic, secondMagic uint32
+		lookupErr               error
+		wantDirectory           bool
+	}{
+		{"securityfs", unix.SECURITYFS_MAGIC, unix.TMPFS_MAGIC, nil, true},
+		{"tmpfs placeholders", unix.TMPFS_MAGIC, unix.TMPFS_MAGIC, nil, false},
+		{"fallback to securityfs", unix.TMPFS_MAGIC, unix.SECURITYFS_MAGIC, nil, true},
+		{"permission denied", 0, unix.TMPFS_MAGIC, unix.EACCES, false},
+		{"lookup IO error", 0, unix.TMPFS_MAGIC, unix.EIO, false},
+		{"disappeared during lookup", 0, unix.TMPFS_MAGIC, unix.ENOENT, false},
+		{"positive overrides lookup error", 0, unix.SECURITYFS_MAGIC, unix.EACCES, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			first := filepath.Join(root, "ima")
+			second := filepath.Join(root, "integrity", "ima")
+			if err := os.MkdirAll(second, 0755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Mkdir(first, 0755); err != nil {
+				t.Fatal(err)
+			}
+			withFakeStatfs(t, fakeStatfsTable(map[string]struct {
+				magic uint32
+				err   error
+			}{
+				first: {tc.firstMagic, tc.lookupErr}, second: {tc.secondMagic, nil},
+			}))
+			for _, modern := range []bool{false, true} {
+				lsm := filepath.Join(root, "lsm")
+				if modern {
+					if err := os.WriteFile(lsm, []byte("bpf,ima"), 0644); err != nil {
+						t.Fatal(err)
+					}
+				}
+				sf, err := ProbeWith(WithSecuritySubsystems(), WithLSMPath(lsm), func(c *probeConfig) { c.imaPaths = []string{first, second} })
+				if err != nil {
+					t.Fatal(err)
+				}
+				if sf.IMADirectory.Supported != tc.wantDirectory || (sf.IMADirectory.Error == nil) != tc.wantDirectory {
+					t.Fatalf("directory=%+v", sf.IMADirectory)
+				}
+				if sf.IMAEnabled.Supported != (modern || tc.wantDirectory) {
+					t.Fatalf("IMA=%+v", sf.IMAEnabled)
+				}
+				if modern || tc.wantDirectory {
+					if sf.IMAEnabled.Error != nil {
+						t.Fatalf("positive lost: %v", sf.IMAEnabled.Error)
+					}
+				} else if tc.lookupErr != nil && !errors.Is(sf.IMAEnabled.Error, tc.lookupErr) {
+					t.Fatalf("lookup error lost: %v", sf.IMAEnabled.Error)
+				}
+				if !tc.wantDirectory && tc.lookupErr != nil && !errors.Is(sf.IMADirectory.Error, tc.lookupErr) {
+					t.Fatalf("directory lookup error lost: %v", sf.IMADirectory.Error)
+				}
 			}
 		})
 	}

@@ -61,13 +61,16 @@ Changes to any of these points require explicit discussion in the PR and a CHANG
 
 - `IMAEnabled` accepts either an `ima` LSM entry or a visible IMA-specific
   securityfs directory (`ima` compatibility path or `integrity/ima`). Follow
-  symlinks and verify directory type. Neither `integrity` alone nor
-  `CONFIG_IMA=y` establishes runtime availability; do not use version cutoffs.
+  symlinks and verify directory type and `SECURITYFS_MAGIC` on the resolved
+  directory filesystem. Ordinary directories are not runtime evidence. Neither
+  `integrity` alone nor `CONFIG_IMA=y` establishes runtime availability; do not
+  use version cutoffs.
 - Positive evidence wins over failure of another source. Preserve raw BPF LSM
   errors and `ActiveLSMs` independently. For `IMADirectory`, missing paths are
-  clean negatives; access/type failures remain errors unless another IMA path
-  is visible. Without any positive runtime evidence, `IMAEnabled` carries an
-  unavailable-evidence error, including underlying access/LSM failures.
+  clean negatives; access/type and filesystem-lookup failures remain errors
+  unless another IMA path is verified on securityfs. Without any positive
+  runtime evidence, `IMAEnabled` carries an unavailable-evidence error,
+  including underlying access/LSM failures.
 - Probe measurement activity when either availability signal succeeds, using
   the visible directory's count interface. A skipped probe carries an error.
   Retain count read/parse errors and the existing count/exec semantics; do not

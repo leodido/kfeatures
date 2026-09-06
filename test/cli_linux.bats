@@ -142,14 +142,20 @@ setup_file() {
     rm -f "$out_file" "$err_file"
 }
 
-@test "probe --json: IMA directory implies availability and skipped measurements carry errors" {
+@test "probe --json: IMA directories require securityfs and skipped measurements carry errors" {
     run "$KFEATURES_BIN" probe --json
     assert_success
     echo "$output" | python3 -c '
-import json,sys
+import json,os,subprocess,sys
 s=json.load(sys.stdin)
 if s["IMADirectory"]["Supported"]:
     assert s["IMAEnabled"]["Supported"], s
+    verified=False
+    for path in ("/sys/kernel/security/ima", "/sys/kernel/security/integrity/ima"):
+        fs=subprocess.run(["stat", "-f", "-c", "%t", path], capture_output=True, text=True)
+        if os.path.isdir(path) and fs.returncode == 0 and fs.stdout.strip() == "73636673":
+            verified=True
+    assert verified, "IMA directory evidence must resolve to securityfs"
 if not s["IMAEnabled"]["Supported"]:
     assert s["IMAEnabled"]["Error"] is not None, s
     assert s["IMAAnyMeasurementActive"]["Error"] is not None, s
