@@ -257,7 +257,7 @@ Core:
 
 Security Subsystems:
   BPF LSM enabled: yes
-  IMA enabled: no
+  IMA enabled: yes
   IMA directory: yes
   IMA any measurement active: no
   Active LSMs: lockdown, capability, yama, apparmor, bpf
@@ -399,6 +399,34 @@ Tools exposed: `probe-host`, `probe-bpf`, `check`, `config`. The server stays al
 | ELF-derived requirements | program/map types and helper-per-program requirements via `FromELF`; full snapshot (warnings, CO-RE memory-access classification, derived `RequireMinKernel`) via `ProbeELF` / `ProbeELFWith(WithCOREChecks())` |
 | Mitigation context | Spectre v1/v2 vulnerability status |
 | Kernel config | `CONFIG_BPF_LSM`, `CONFIG_IMA`, `CONFIG_DEBUG_INFO_BTF`, `CONFIG_FPROBE`, any `CONFIG_*` |
+
+### IMA availability and measurement activity
+
+```bash
+kfeatures check --require ima
+kfeatures check --require ima-any-measurement-active
+kfeatures probe host --json
+```
+
+`IMAEnabled` / `--require ima` detects runtime availability through either an
+`ima` entry in the active LSM list or a visible IMA securityfs directory:
+`/sys/kernel/security/ima` (the compatibility path) or
+`/sys/kernel/security/integrity/ima`. This supports legacy kernels without a
+separate IMA LSM entry. An unreadable LSM list does not negate visible IMA
+evidence. Without positive evidence, diagnostics report unavailable runtime
+visibility and preserve access errors rather than declaring IMA disabled.
+
+Availability does not mean that measurement policy is active, appraisal is
+enforcing, a particular file has a cached hash, or every BPF IMA helper call
+will succeed. `bpf_ima_file_hash` can calculate a hash without a cached
+measurement; helper and program requirements must be checked separately.
+
+The measurement check observes the runtime count and may execute `/bin/true`
+if the count is at most one. No observed activity does not prove that no policy
+exists: inspect workload coverage and the effective policy, which may come from
+boot parameters, built-in/architecture policy, or securityfs policy loading.
+Skipped probes and count read/parse failures retain errors. These checks do not
+mount securityfs or change policy or boot parameters.
 
 ## Stability
 

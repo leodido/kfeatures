@@ -141,3 +141,43 @@ setup_file() {
     grep -q '"message":"kernel config not available' "$err_file"
     rm -f "$out_file" "$err_file"
 }
+
+@test "probe --json: IMA directory implies availability and skipped measurements carry errors" {
+    run "$KFEATURES_BIN" probe --json
+    assert_success
+    echo "$output" | python3 -c '
+import json,sys
+s=json.load(sys.stdin)
+if s["IMADirectory"]["Supported"]:
+    assert s["IMAEnabled"]["Supported"], s
+if not s["IMAEnabled"]["Supported"]:
+    assert s["IMAEnabled"]["Error"] is not None, s
+    assert s["IMAAnyMeasurementActive"]["Error"] is not None, s
+'
+}
+
+@test "check --json: IMA failures describe runtime visibility or configuration, not LSM boot ordering" {
+    run "$KFEATURES_BIN" check --require ima --json
+    [[ "$status" -eq 0 || "$status" -eq 1 ]]
+    echo "$output" | python3 -c '
+import json,sys
+s=json.load(sys.stdin)
+if not s["ok"]:
+    reason=s["reason"]
+    assert "IMA runtime evidence unavailable" in reason or "CONFIG_IMA not set" in reason, reason
+    assert "lsm=...,ima" not in reason, reason
+'
+}
+
+@test "check --json: IMA measurement failure distinguishes visibility, count errors, and observed inactivity" {
+    run "$KFEATURES_BIN" check --require ima-any-measurement-active --json
+    [[ "$status" -eq 0 || "$status" -eq 1 ]]
+    echo "$output" | python3 -c '
+import json,sys
+s=json.load(sys.stdin)
+if not s["ok"]:
+    reason=s["reason"]
+    assert any(x in reason for x in ("IMA runtime evidence unavailable", "CONFIG_IMA not set", "unable to read or parse IMA measurement count", "no measurement activity was observed")), reason
+    assert "lsm=...,ima" not in reason, reason
+'
+}

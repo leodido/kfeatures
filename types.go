@@ -60,18 +60,20 @@ type SystemFeatures struct {
 	BPFLSMEnabled ProbeResult
 	ActiveLSMs    []string
 
-	// IMA detection (multiple signals for diagnostics)
-	// IMAEnabled is the authoritative signal: true only if "ima" is in the LSM list.
-	// This is required for bpf_ima_file_hash to work.
+	// IMAEnabled reports runtime evidence of IMA availability: an "ima" LSM
+	// entry or an IMA-specific securityfs directory, including legacy kernels.
+	// It does not imply active measurement policy, appraisal enforcement, cached
+	// hashes for a particular file, or success of BPF IMA helper calls.
 	IMAEnabled ProbeResult
-	// IMADirectory indicates /sys/kernel/security/ima exists.
-	// IMA securityfs is mounted, but IMA may not be actively measuring files.
+	// IMADirectory indicates that /sys/kernel/security/ima (the compatibility
+	// path) or /sys/kernel/security/integrity/ima is a visible directory.
+	// Missing paths are unsupported; access errors are retained.
 	IMADirectory ProbeResult
 	// IMAAnyMeasurementActive indicates at least one IMA measurement rule
 	// has fired. It does not identify which func= rule caused the measurement.
 	// Checked by reading the runtime measurement count and, if needed,
 	// executing /bin/true to trigger a potential BPRM_CHECK rule.
-	// When active, IMA caches file hashes in the inode security blob.
+	// Skipped or inaccessible probes carry an Error, not a clean negative.
 	IMAAnyMeasurementActive ProbeResult
 
 	// Process capabilities relevant to BPF operations

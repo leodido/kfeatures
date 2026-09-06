@@ -4,7 +4,9 @@ package kfeatures
 
 import (
 	"errors"
+	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/cilium/ebpf"
@@ -242,7 +244,7 @@ func TestSystemFeatures_Diagnose(t *testing.T) {
 			IMAEnabled: ProbeResult{Error: errors.New("permission denied")},
 		}
 		got := sf.Diagnose(FeatureIMA)
-		if got != "unable to read active LSM list (/sys/kernel/security/lsm); ensure securityfs is mounted and readable to verify IMA state" {
+		if got != "IMA runtime evidence unavailable or inaccessible: permission denied; verify securityfs visibility and permissions, and check kernel initialization logs" {
 			t.Errorf("Diagnose(FeatureIMA) = %q", got)
 		}
 	})
@@ -619,5 +621,28 @@ func TestCheck_WithFeatureGroup(t *testing.T) {
 	}
 	if fe.Reason != "unknown feature" {
 		t.Fatalf("FeatureError.Reason = %q", fe.Reason)
+	}
+}
+
+func TestDiagnoseIMAVisibilityAndMeasurements(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		sf      SystemFeatures
+		feature Feature
+		want    string
+	}{
+		{"unknown availability", SystemFeatures{}, FeatureIMA, "IMA runtime evidence unavailable"},
+		{"built but not visible", SystemFeatures{KernelConfig: NewKernelConfig(map[string]ConfigValue{"IMA": ConfigBuiltin})}, FeatureIMA, "IMA runtime evidence unavailable"},
+		{"not built", SystemFeatures{KernelConfig: NewKernelConfig(nil), IMAEnabled: ProbeResult{Error: os.ErrPermission}}, FeatureIMA, "CONFIG_IMA not set"},
+		{"skipped measurement", SystemFeatures{IMAEnabled: ProbeResult{Error: os.ErrPermission}, IMAAnyMeasurementActive: ProbeResult{Error: errors.New("skipped")}}, FeatureIMAAnyMeasurementActive, "IMA runtime evidence unavailable or inaccessible"},
+		{"no observed activity", SystemFeatures{IMAEnabled: ProbeResult{Supported: true}}, FeatureIMAAnyMeasurementActive, "IMA is available but no measurement activity was observed"},
+		{"count error", SystemFeatures{IMAEnabled: ProbeResult{Supported: true}, IMAAnyMeasurementActive: ProbeResult{Error: errors.New("invalid syntax")}}, FeatureIMAAnyMeasurementActive, "unable to read or parse IMA measurement count: invalid syntax"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.sf.Diagnose(tc.feature)
+			if !strings.Contains(got, tc.want) || strings.Contains(got, "lsm=...,ima") {
+				t.Fatalf("diagnosis=%q want %q", got, tc.want)
+			}
+		})
 	}
 }

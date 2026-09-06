@@ -57,6 +57,24 @@ Changes to any of these points require explicit discussion in the PR and a CHANG
 
 `ProbeELF` is the strict superset: it returns a richer `*ELFProbes` snapshot (warnings, memory-access summaries, CO-RE classification when opted in) and lets callers project to the same `FeatureGroup` shape via `Requirements()`. New extraction surface (additional warning rules, additional CO-RE classifications) belongs on `ProbeELF`; `FromELF` stays frozen against the four contract points above.
 
+## IMA runtime evidence contract
+
+- `IMAEnabled` accepts either an `ima` LSM entry or a visible IMA-specific
+  securityfs directory (`ima` compatibility path or `integrity/ima`). Follow
+  symlinks and verify directory type. Neither `integrity` alone nor
+  `CONFIG_IMA=y` establishes runtime availability; do not use version cutoffs.
+- Positive evidence wins over failure of another source. Preserve raw BPF LSM
+  errors and `ActiveLSMs` independently. For `IMADirectory`, missing paths are
+  clean negatives; access/type failures remain errors unless another IMA path
+  is visible. Without any positive runtime evidence, `IMAEnabled` carries an
+  unavailable-evidence error, including underlying access/LSM failures.
+- Probe measurement activity when either availability signal succeeds, using
+  the visible directory's count interface. A skipped probe carries an error.
+  Retain count read/parse errors and the existing count/exec semantics; do not
+  infer appraisal, file-specific cached hashes, or BPF helper usability.
+- Keep fixtures independent of host IMA state using private path overrides.
+  Exercise legacy and modern evidence, precedence, and visibility failures.
+
 ## Kernel-version snapshot (`internal/kernelversions`)
 
 The helper / program-type / map-type minimum-kernel-version tables are generated, not hand-edited. The generator (`internal/kernelversions/cmd/kvgen`) parses BCC's `docs/kernel-versions.md` and Linux UAPI `include/uapi/linux/bpf.h` at pinned commits, cross-validates that every `BPF_FUNC_*` / `BPF_PROG_TYPE_*` / `BPF_MAP_TYPE_*` enum value in UAPI has a corresponding row in the BCC table, and emits `tables.go`.

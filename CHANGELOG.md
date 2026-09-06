@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Detect IMA runtime availability on legacy and modern kernels using the active LSM list or IMA-specific securityfs directories. Legacy IMA now reaches measurement probing; unavailable evidence, skipped probes, and count errors remain visible. Correct IMA diagnostics and remove unconditional `lsm=...,ima` advice.
+
 ## [0.7.0] - 2026-05-25
 
 ### Added

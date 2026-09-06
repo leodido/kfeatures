@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -38,7 +39,8 @@ type probeConfig struct {
 	syscalls           bool
 	mitigations        bool
 	namespaces         bool
-	lsmPath            string // custom path for LSM file (for testing)
+	lsmPath            string   // custom path for LSM file (for testing)
+	imaPaths           []string // private securityfs directory overrides for tests
 }
 
 // ProbeOption configures what [ProbeWith] collects for diagnostics/reporting.
@@ -207,23 +209,26 @@ func ProbeWith(opts ...ProbeOption) (*SystemFeatures, error) {
 		lsms, err := readActiveLSMsFrom(lsmPath)
 		if err != nil {
 			sf.BPFLSMEnabled = ProbeResult{Supported: false, Error: err}
-			sf.IMAEnabled = ProbeResult{Supported: false, Error: err}
 		} else {
 			sf.ActiveLSMs = lsms
 			sf.BPFLSMEnabled = ProbeResult{Supported: slices.Contains(lsms, "bpf")}
-			// IMAEnabled: strict check, only true if "ima" is in LSM list.
-			// This is required for bpf_ima_file_hash to work.
-			sf.IMAEnabled = ProbeResult{Supported: slices.Contains(lsms, "ima")}
 		}
-		// IMADirectory: check if /sys/kernel/security/ima exists.
-		// This indicates IMA is compiled in and securityfs is mounted,
-		// but does not guarantee IMA is actively measuring files.
-		sf.IMADirectory = probeIMADirectory()
-
-		// IMAAnyMeasurementActive: check if any IMA measurement rule has fired.
-		// Only probe if IMA is enabled (in LSM list) to avoid unnecessary exec.
+		paths := cfg.imaPaths
+		if len(paths) == 0 {
+			paths = []string{imaDirectoryPath, imaIntegrityDirectoryPath}
+		}
+		var directory string
+		sf.IMADirectory, directory = probeIMADirectories(paths, os.Stat)
+		sf.IMAEnabled = imaAvailability(lsms, err, sf.IMADirectory)
 		if sf.IMAEnabled.Supported {
-			sf.IMAAnyMeasurementActive = probeIMAAnyMeasurementActive()
+			// Use the visible directory, including the underlying integrity path
+			// when the compatibility symlink is absent. Keep the existing stimulus.
+			countPath := filepath.Join(directory, "runtime_measurements_count")
+			sf.IMAAnyMeasurementActive = probeIMAAnyMeasurementActiveWith(func() (int, error) {
+				return readMeasurementCountFrom(countPath)
+			})
+		} else {
+			sf.IMAAnyMeasurementActive = ProbeResult{Error: fmt.Errorf("IMA measurement probe skipped: %w", sf.IMAEnabled.Error)}
 		}
 	}
 
@@ -387,18 +392,38 @@ func probeKernelVersion() string {
 
 const imaDirectoryPath = "/sys/kernel/security/ima"
 
-// probeIMADirectory checks if the IMA securityfs directory exists.
-// This indicates IMA is compiled in and securityfs is mounted,
-// but does not guarantee IMA is actively measuring files.
-func probeIMADirectory() ProbeResult {
-	_, err := os.Stat(imaDirectoryPath)
-	if err == nil {
+const imaIntegrityDirectoryPath = "/sys/kernel/security/integrity/ima"
+
+// probeIMADirectories follows the compatibility symlink and also checks its
+// underlying path. A visible directory wins over an error on the other path.
+// Missing paths are clean directory negatives; access and type errors survive.
+// The returned path selects the measurement interface, even when none is visible.
+func probeIMADirectories(paths []string, stat func(string) (os.FileInfo, error)) (ProbeResult, string) {
+	var errs []error
+	for _, path := range paths {
+		info, err := stat(path)
+		if err == nil {
+			if info.IsDir() {
+				return ProbeResult{Supported: true}, path
+			}
+			err = fmt.Errorf("IMA securityfs path %s is not a directory", path)
+		}
+		if !os.IsNotExist(err) {
+			errs = append(errs, err)
+		}
+	}
+	return ProbeResult{Error: errors.Join(errs...)}, paths[0]
+}
+
+// imaAvailability accepts independent positive runtime evidence. Neither the
+// generic integrity LSM nor kernel configuration proves IMA initialization.
+// Without positive evidence, retain failures and describe absence as unknown
+// runtime visibility, not proof that IMA is disabled.
+func imaAvailability(lsms []string, lsmErr error, directory ProbeResult) ProbeResult {
+	if slices.Contains(lsms, "ima") || directory.Supported {
 		return ProbeResult{Supported: true}
 	}
-	if os.IsNotExist(err) {
-		return ProbeResult{Supported: false}
-	}
-	return ProbeResult{Supported: false, Error: err}
+	return ProbeResult{Error: errors.Join(errors.New("IMA runtime evidence unavailable"), lsmErr, directory.Error)}
 }
 
 const imaMeasurementCountPath = "/sys/kernel/security/ima/runtime_measurements_count"
@@ -414,11 +439,15 @@ func ProbeIMAAnyMeasurementActive() ProbeResult {
 // has occurred by reading the runtime measurement count. A count > 1 (beyond
 // the boot_aggregate entry) means at least one measurement has fired.
 //
-// When the count is exactly 1, the probe executes /bin/true and re-reads
+// When the count is at most 1, the probe executes /bin/true and re-reads
 // the count. An increase confirms a measurement covering exec occurred,
 // but does not distinguish which specific func= rule triggered it.
 func probeIMAAnyMeasurementActive() ProbeResult {
-	before, err := readMeasurementCount()
+	return probeIMAAnyMeasurementActiveWith(readMeasurementCount)
+}
+
+func probeIMAAnyMeasurementActiveWith(readCount func() (int, error)) ProbeResult {
+	before, err := readCount()
 	if err != nil {
 		return ProbeResult{Supported: false, Error: err}
 	}
@@ -432,7 +461,7 @@ func probeIMAAnyMeasurementActive() ProbeResult {
 	// This is a ~2ms side effect with a deterministic, always-present binary.
 	_ = (&exec.Cmd{Path: "/bin/true"}).Run()
 
-	after, err := readMeasurementCount()
+	after, err := readCount()
 	if err != nil {
 		return ProbeResult{Supported: false, Error: err}
 	}
