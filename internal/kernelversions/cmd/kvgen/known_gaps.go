@@ -35,4 +35,6 @@ var allowedMissingMapTypes = map[string]string{
 	"BPF_MAP_TYPE_CGRP_STORAGE": "BCC table not yet refreshed past v6.x; type exists in UAPI",
 	"BPF_MAP_TYPE_ARENA":        "BCC table not yet refreshed past v6.x; type exists in UAPI",
 	"BPF_MAP_TYPE_INSN_ARRAY":   "BCC table not yet refreshed past v6.x; type exists in UAPI",
+	// Linux v7.2: torvalds/linux@16b4d3e2fb24; still absent from BCC f07cbb734d5d.
+	"BPF_MAP_TYPE_RHASH": "BCC has no version row for the resizable hash map yet",
 }
