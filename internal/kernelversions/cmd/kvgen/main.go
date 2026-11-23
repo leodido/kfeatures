@@ -31,8 +31,8 @@ import (
 // Default pins. Bumped by the scheduled refresh workflow when upstream
 // changes; do not edit by hand.
 const (
-	defaultBCCCommit    = "83845a0e06e515aa5d1ad5bba8801b0964c86cc6"
-	defaultKernelCommit = "36808d5e983985bbda87e01059cccc071fe3ec8d"
+	defaultBCCCommit    = "87e9ef9670eb6bcadb15474d64d7bdba6f25d675"
+	defaultKernelCommit = "b6a9fa34ce4187cb69d3c588a4bbffc31ce5db8f"
 )
 
 // main is the CLI entrypoint. Network-bound; not exercised by unit tests.
